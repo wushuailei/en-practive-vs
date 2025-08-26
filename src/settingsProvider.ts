@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { PluginSettings, WordBookInfo } from './types';
+import { PluginSettings, WordBookInfo, PracticeMode } from './types';
 import { getSettings, updateSetting } from './settings';
 import { getStoredWordBooks } from './wordbooks';
 import { PracticeWebviewProvider } from './practiceProvider';
@@ -58,6 +58,16 @@ export function showSettingsPanel(context: vscode.ExtensionContext, practiceProv
                     // 同步更新练习提供者的设置
                     await practiceProvider.updateChapterLoopSetting(message.chapterLoop);
                     vscode.window.showInformationMessage(message.chapterLoop ? '已开启单章循环' : '已关闭单章循环');
+                    // 刷新设置页面以显示最新状态
+                    await updateWebviewContent();
+                    break;
+                case 'updatePracticeMode':
+                    console.log('更新练习模式:', message.practiceMode);
+                    await updateSetting(context, 'practiceMode', message.practiceMode);
+                    // 同步更新练习提供者的设置
+                    await practiceProvider.updatePracticeMode(message.practiceMode);
+                    const modeText = message.practiceMode === 'normal' ? '正常模式' : '默写模式';
+                    vscode.window.showInformationMessage(`已切换到${modeText}`);
                     // 刷新设置页面以显示最新状态
                     await updateWebviewContent();
                     break;
@@ -310,19 +320,25 @@ function getSettingsWebviewContentWithData(wordBooks: WordBookInfo[], settings: 
             <div class="description">配置您的学习参数和偏好。</div>
             
             <div class="setting-item">
+                <div class="setting-label">练习模式</div>
+                <div class="setting-control">
+                    <select id="practiceModeSelect" 
+                            onchange="vscode.postMessage({command: 'updatePracticeMode', practiceMode: this.value}); return false;"
+                            style="background-color: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); padding: 4px 8px; border-radius: 2px;">
+                        <option value="normal" ${settings.practiceMode === 'normal' ? 'selected' : ''}>正常模式（显示单词）</option>
+                        <option value="dictation" ${settings.practiceMode === 'dictation' ? 'selected' : ''}>默写模式（仅显示翻译）</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="setting-item">
                 <div class="setting-label">每章单词数</div>
                 <div class="setting-control">
                     <span style="color: var(--vscode-charts-green);">10 个（固定）</span>
                 </div>
             </div>
             
-            <div class="setting-item">
-                <div class="setting-label">练习模式</div>
-                <div class="setting-control">
-                    <span style="color: var(--vscode-charts-green);">顺序练习（固定）</span>
-                </div>
-            </div>
-            
+
             <div class="setting-item">
                 <div class="setting-label">单章循环</div>
                 <div class="setting-control">

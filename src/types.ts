@@ -1,8 +1,11 @@
+// 练习模式类型
+export type PracticeMode = 'normal' | 'dictation';
+
 // 插件设置接口定义
 export interface PluginSettings {
     currentWordbook: string;
     wordsPerChapter: number;
-    practiceMode: 'sequential';  // 只保留顺序模式
+    practiceMode: PracticeMode;  // 支持正常模式和默写模式
     showPhonetics: boolean;
     autoNextWord: boolean;
     chapterLoop: boolean;  // 单章循环设置
@@ -67,7 +70,7 @@ export interface DictRecord {
     totalChapters: number;
     currentChapter: number;
     currentWordIndex: number;
-    practiceMode: 'sequential';  // 只保留顺序模式
+    practiceMode: PracticeMode;  // 支持正常模式和默写模式
     chapterLoop: boolean;
     lastPracticeTime: string;
     createdTime: string;
@@ -78,7 +81,7 @@ export interface DictRecord {
 export const FIXED_WORDS_PER_CHAPTER = 10;
 
 // 默认练习记录（只保留基本信息）
-export const createDefaultDictRecord = (dictId: string, dictName: string, totalWords: number): DictRecord => {
+export const createDefaultDictRecord = (dictId: string, dictName: string, totalWords: number, practiceMode: PracticeMode = 'normal'): DictRecord => {
     const totalChapters = Math.ceil(totalWords / FIXED_WORDS_PER_CHAPTER);
     return {
         dictId,
@@ -87,7 +90,7 @@ export const createDefaultDictRecord = (dictId: string, dictName: string, totalW
         totalChapters,
         currentChapter: 1,
         currentWordIndex: 0,
-        practiceMode: 'sequential',
+        practiceMode,
         chapterLoop: true,
         lastPracticeTime: new Date().toISOString(),
         createdTime: new Date().toISOString()
@@ -98,7 +101,7 @@ export const createDefaultDictRecord = (dictId: string, dictName: string, totalW
 export const defaultSettings: PluginSettings = {
     currentWordbook: 'hongbaoshu-2026',
     wordsPerChapter: FIXED_WORDS_PER_CHAPTER,
-    practiceMode: 'sequential',  // 只使用顺序模式
+    practiceMode: 'normal',  // 默认使用正常模式
     showPhonetics: true,
     autoNextWord: false,
     chapterLoop: true,  // 默认开启单章循环

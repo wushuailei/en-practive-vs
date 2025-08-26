@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { PluginSettings, WordData, ChapterInfo, defaultSettings, defaultWordsData, FIXED_WORDS_PER_CHAPTER, DictRecord } from './types';
+import { PluginSettings, WordData, ChapterInfo, defaultSettings, defaultWordsData, FIXED_WORDS_PER_CHAPTER, DictRecord, PracticeMode } from './types';
 import { getSettings, updateSetting } from './settings';
 import { getStoredWordBooks, loadWordBookData } from './wordbooks';
 import { ShardedRecordManager } from './shardedRecordManager';
@@ -56,7 +56,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     this.currentDictRecord = await this.recordManager.loadDictRecord(
                         targetBook.id, 
                         targetBook.name, 
-                        this.wordsData.length
+                        this.wordsData.length,
+                        this.settings.practiceMode
                     );
                     
                     // 从记录中恢复练习进度
@@ -103,7 +104,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 this.currentDictRecord = await this.recordManager.loadDictRecord(
                     bookId, 
                     targetBook.name, 
-                    this.wordsData.length
+                    this.wordsData.length,
+                    this.settings.practiceMode
                 );
                 
                 // 恢复进度
@@ -154,7 +156,42 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         
         // 更新记录
         if (this.currentDictId) {
-            await this.recordManager.updateChapterLoop(this.currentDictId, chapterLoop);
+            await this.recordManager.updateChapterLoop(this.currentDictId, chapterLoop, this.settings.practiceMode);
+        }
+    }
+
+    // 更新练习模式
+    public async updatePracticeMode(practiceMode: PracticeMode): Promise<void> {
+        this.settings.practiceMode = practiceMode;
+        
+        // 加载新模式的记录
+        if (this.currentDictId) {
+            const wordBooksList = await getStoredWordBooks(this.context);
+            const targetBook = wordBooksList.find((book: any) => book.id === this.currentDictId);
+            if (targetBook) {
+                this.currentDictRecord = await this.recordManager.loadDictRecord(
+                    this.currentDictId, 
+                    targetBook.name, 
+                    this.wordsData.length,
+                    practiceMode
+                );
+                
+                // 从记录中恢复进度
+                if (this.currentDictRecord) {
+                    this.settings.currentChapter = this.currentDictRecord.currentChapter;
+                    this.settings.currentWordIndex = this.currentDictRecord.currentWordIndex;
+                    this.settings.chapterLoop = this.currentDictRecord.chapterLoop;
+                }
+                
+                // 重新生成HTML并更新webview
+                if (this._view) {
+                    this._view.webview.html = this._getHtmlForWebview(this._view.webview, practiceMode);
+                    // 等待webview加载完成后发送数据
+                    setTimeout(() => {
+                        this.updateWebview();
+                    }, 100);
+                }
+            }
         }
     }
 
@@ -184,7 +221,14 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             ]
         };
 
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        // 先初始化数据，然后设置HTML
+        this.initializeWordsData().then(() => {
+            webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, this.settings.practiceMode);
+            // HTML设置完成后，立即发送初始数据
+            setTimeout(() => {
+                this.updateWebview();
+            }, 100);
+        });
 
         // 监听来自 webview 的消息
         webviewView.webview.onDidReceiveMessage(
@@ -200,13 +244,14 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                                 this.currentDictId,
                                 this.settings.currentChapter,
                                 message.word,
-                                message.isCorrect
+                                message.isCorrect,
+                                this.settings.practiceMode
                             );
                         }
                         break;
                     case 'ready':
-                        // webview加载完成后，立即加载设置和词书数据
-                        this.initializeWordsData();
+                        // webview加载完成后，发送数据
+                        this.updateWebview();
                         break;
                     case 'switchChapter':
                         await this.switchChapter(message.chapter);
@@ -220,14 +265,12 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     // 新增初始化方法
-    private async initializeWordsData() {
+    private async initializeWordsData(): Promise<void> {
         if (!this.isInitialized) {
             console.log('练习面板初始化，加载设置和词书...');
             await this.loadWordsData();
             this.isInitialized = true;
-            
-            // 发送数据到webview
-            this.updateWebview();
+            console.log('初始化完成，当前模式:', this.settings.practiceMode);
         }
     }
 
@@ -274,6 +317,13 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             const currentWord = this.getCurrentWord();
             const chapterWords = this.getCurrentChapterWords();
             
+            console.log('updateWebview 调试信息:');
+            console.log('- wordsData.length:', this.wordsData.length);
+            console.log('- chapterInfo:', chapterInfo);
+            console.log('- currentWord:', currentWord);
+            console.log('- chapterWords.length:', chapterWords.length);
+            console.log('- settings:', this.settings);
+            
             this._view.webview.postMessage({
                 command: 'updateDisplay',
                 data: {
@@ -285,6 +335,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     settings: this.settings
                 }
             });
+        } else {
+            console.log('updateWebview: _view 为空，无法更新');
         }
     }
 
@@ -299,7 +351,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             
             // 更新记录
             if (this.currentDictId) {
-                await this.recordManager.updateCurrentPosition(this.currentDictId, chapterNumber, 0);
+                await this.recordManager.updateCurrentPosition(this.currentDictId, chapterNumber, 0, this.settings.practiceMode);
             }
             
             this.updateWebview();
@@ -322,7 +374,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 await this.recordManager.updateCurrentPosition(
                     this.currentDictId, 
                     this.settings.currentChapter, 
-                    nextIndex
+                    nextIndex,
+                    this.settings.practiceMode
                 );
             }
             
@@ -332,7 +385,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             if (this.currentDictId) {
                 await this.recordManager.recordChapterCompletion(
                     this.currentDictId, 
-                    this.settings.currentChapter
+                    this.settings.currentChapter,
+                    this.settings.practiceMode
                 );
             }
             
@@ -347,7 +401,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     await this.recordManager.updateCurrentPosition(
                         this.currentDictId, 
                         this.settings.currentChapter, 
-                        0
+                        0,
+                        this.settings.practiceMode
                     );
                 }
                 
@@ -366,7 +421,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview): string {
+    private _getHtmlForWebview(webview: vscode.Webview, practiceMode: PracticeMode = 'normal'): string {
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -462,6 +517,14 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             line-height: 1.4;
         }
         
+        .dictation-mode-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--vscode-charts-blue);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
         .input-container {
             position: fixed;
             bottom: 0;
@@ -499,6 +562,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         <div class="chapter-info" id="chapterInfo" style="background-color: var(--vscode-editor-widget-background); border: 1px solid var(--vscode-widget-border); border-radius: 4px; padding: 10px; margin-bottom: 15px; font-size: 12px;">
             <div class="info-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
                 <div class="chapter-display" style="flex: 0 0 auto;">章节: - / - | 单词: - / -</div>
+                <div class="mode-display" style="flex: 0 0 auto; color: var(--vscode-charts-blue); font-weight: bold;">模式: ${practiceMode === 'normal' ? '📝 正常模式' : '✏️ 默写模式'}</div>
                 <div class="chapter-selector" style="display: flex; align-items: center; gap: 8px; flex: 0 0 auto;">
                     <span>选择章节:</span>
                     <select class="chapter-select" id="chapterSelect" onchange="switchChapter(this.value)" style="background-color: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); padding: 2px 6px; border-radius: 2px; font-size: 11px;">
@@ -508,6 +572,19 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             </div>
         </div>
         
+        ${practiceMode === 'dictation' ? `
+        <div class="word-display">
+            <div class="word-content" id="wordContent">
+                <div class="word-main-info">
+                </div>
+                <div class="word-phonetics">
+                    <span>美: <span id="usPhone">/rɪˈmot/</span></span>
+                    <span>英: <span id="ukPhone">/rɪˈməʊt/</span></span>
+                </div>
+                <div class="word-trans" id="wordTrans">远程的 (adj.), 遥控器 (noun)</div>
+            </div>
+        </div>
+        ` : `
         <div class="word-display">
             <div class="word-content" id="wordContent">
                 <div class="word-main-info">
@@ -520,6 +597,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 <div class="word-trans" id="wordTrans">远程的 (adj.), 遥控器 (noun)</div>
             </div>
         </div>
+        `}
     </div>
     
     <div class="input-container">
@@ -532,25 +610,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         
         let currentWordIndex = 0;
         let currentWordData = null; // 保存当前单词数据
-        let wordsData = [
-            {
-                "usphone": "/rɪˈmot/",
-                "ukphone": "/rɪˈməʊt/",
-                "name": "remote",
-                "trans": [
-                    "远程的 (adj.)",
-                    "遥控器 (noun)"
-                ]
-            },
-            {
-                "usphone": "/rɪˈmuv/",
-                "ukphone": "/rɪˈmu:v/",
-                "name": "remove",
-                "trans": [
-                    "移除， 去掉 (vt.)"
-                ]
-            }
-        ];
+        let practiceMode = '${practiceMode}'; // 初始化练习模式
+        let wordsData = [];
         
         // 监听来自扩展的消息
         window.addEventListener('message', event => {
@@ -571,6 +632,16 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                             // 更新当前单词索引和当前单词数据
                             currentWordIndex = newIndex || 0;
                             currentWordData = currentWord; // 保存当前单词数据
+                            
+                            // 更新练习模式（如果有提供）
+                            if (settings && settings.practiceMode) {
+                                practiceMode = settings.practiceMode;
+                                // 更新模式显示
+                                const modeDisplay = document.querySelector('.mode-display');
+                                if (modeDisplay) {
+                                    modeDisplay.textContent = '模式: ' + (practiceMode === 'normal' ? '📝 正常模式' : '✏️ 默写模式');
+                                }
+                            }
                             
                             // 更新章节信息
                             updateChapterDisplay(chapterInfo, currentWordPosition, chapterWordsCount);
@@ -616,23 +687,64 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         function updateCurrentWordDisplay(word) {
             if (!word) return;
             
-            // 更新单词显示
-            const wordNameElement = document.getElementById('wordName');
-            wordNameElement.innerHTML = '';
-            for (let i = 0; i < word.name.length; i++) {
-                const span = document.createElement('span');
-                span.className = 'letter';
-                span.textContent = word.name[i];
-                wordNameElement.appendChild(span);
+            // 根据练习模式动态更新显示
+            if (practiceMode === 'dictation') {
+                // 默写模式：隐藏单词名称和音标，只显示翻译
+                const wordNameElement = document.getElementById('wordName');
+                if (wordNameElement) {
+                    wordNameElement.style.display = 'none';
+                }
+                
+                // 隐藏音标
+                const wordPhonetics = document.querySelector('.word-phonetics');
+                if (wordPhonetics) {
+                    wordPhonetics.style.display = 'none';
+                }
+                
+                // 移除默写模式提示（如果存在）
+                const dictationText = document.querySelector('.dictation-mode-text');
+                if (dictationText) {
+                    dictationText.remove();
+                }
+            } else {
+                // 正常模式：显示单词名称、音标和字母分割
+                const wordNameElement = document.getElementById('wordName');
+                if (wordNameElement) {
+                    wordNameElement.style.display = 'block';
+                    wordNameElement.innerHTML = '';
+                    for (let i = 0; i < word.name.length; i++) {
+                        const span = document.createElement('span');
+                        span.className = 'letter';
+                        span.textContent = word.name[i];
+                        wordNameElement.appendChild(span);
+                    }
+                }
+                
+                // 显示音标
+                const wordPhonetics = document.querySelector('.word-phonetics');
+                if (wordPhonetics) {
+                    wordPhonetics.style.display = 'flex';
+                }
+                
+                // 移除默写模式提示
+                const dictationText = document.querySelector('.dictation-mode-text');
+                if (dictationText) {
+                    dictationText.remove();
+                }
             }
             
-            document.getElementById('usPhone').textContent = word.usphone || '';
-            document.getElementById('ukPhone').textContent = word.ukphone || '';
+            // 更新音标和翻译（只在正常模式下显示音标）
+            if (practiceMode === 'normal') {
+                document.getElementById('usPhone').textContent = word.usphone || '';
+                document.getElementById('ukPhone').textContent = word.ukphone || '';
+            }
             document.getElementById('wordTrans').textContent = word.trans ? word.trans.join(', ') : '';
             
             // 清空输入框
             input.value = '';
-            updateHighlight('');
+            if (practiceMode === 'normal') {
+                updateHighlight('');
+            }
         }
         
         function switchChapter(chapterNumber) {
@@ -703,15 +815,20 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     isCorrect: true
                 });
                 
-                // 直接跳转到下一个单词
-                vscode.postMessage({
-                    command: 'nextWord'
-                });
+                if (practiceMode === 'dictation') {
+                    // 默写模式：显示正确的单词，然后跳转
+                    showWordInDictationMode(word, true);
+                } else {
+                    // 正常模式：直接跳转到下一个单词
+                    vscode.postMessage({
+                        command: 'nextWord'
+                    });
+                }
                 return true;
             }
             
-            // 检查是否为错误输入（输入在当前位置不匹配）
-            if (inputLower.length > 0) {
+            // 对于正常模式，检查字母逐个匹配
+            if (practiceMode === 'normal' && inputLower.length > 0) {
                 const currentChar = inputLower[inputLower.length - 1];
                 const expectedChar = wordLower[inputLower.length - 1];
                 
@@ -736,7 +853,123 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 }
             }
             
+            // 对于默写模式的错误处理
+            if (practiceMode === 'dictation') {
+                // 检查每个字符是否正确
+                for (let i = 0; i < inputLower.length; i++) {
+                    if (inputLower[i] !== wordLower[i]) {
+                        // 输入错误，显示单词并提示错误
+                        showWordInDictationMode(word, false);
+                        
+                        // 记录错误结果
+                        vscode.postMessage({
+                            command: 'wordPracticeResult',
+                            word: word.name,
+                            isCorrect: false
+                        });
+                        return false;
+                    }
+                }
+                
+                // 如果输入超出了单词长度
+                if (inputLower.length > wordLower.length) {
+                    showWordInDictationMode(word, false);
+                    
+                    // 记录错误结果
+                    vscode.postMessage({
+                        command: 'wordPracticeResult',
+                        word: word.name,
+                        isCorrect: false
+                    });
+                    return false;
+                }
+            }
+            
             return null; // 继续输入
+        }
+        
+        // 在默写模式下显示单词的函数
+        function showWordInDictationMode(word, isCorrect) {
+            const wordMainInfo = document.querySelector('.word-main-info');
+            const wordDisplay = document.querySelector('.word-display');
+            
+            // 移除默写模式提示
+            const dictationText = document.querySelector('.dictation-mode-text');
+            if (dictationText) {
+                dictationText.remove();
+            }
+            
+            // 显示单词
+            let wordNameElement = document.getElementById('wordName');
+            if (!wordNameElement) {
+                // 如果不存在，创建单词显示元素
+                wordNameElement = document.createElement('div');
+                wordNameElement.id = 'wordName';
+                wordNameElement.className = 'word-name';
+                wordMainInfo.insertBefore(wordNameElement, wordMainInfo.firstChild);
+            }
+            
+            wordNameElement.style.display = 'block';
+            wordNameElement.innerHTML = '';
+            
+            // 显示音标（显示答案时）
+            const wordPhonetics = document.querySelector('.word-phonetics');
+            if (wordPhonetics) {
+                wordPhonetics.style.display = 'flex';
+            }
+            
+            // 更新音标内容
+            document.getElementById('usPhone').textContent = word.usphone || '';
+            document.getElementById('ukPhone').textContent = word.ukphone || '';
+            
+            // 创建字母分割显示
+            for (let i = 0; i < word.name.length; i++) {
+                const span = document.createElement('span');
+                span.className = 'letter';
+                span.textContent = word.name[i];
+                wordNameElement.appendChild(span);
+            }
+            
+            // 根据正确性添加样式
+            if (isCorrect) {
+                wordNameElement.style.color = 'var(--vscode-testing-iconPassed)';
+                wordNameElement.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+            } else {
+                wordNameElement.style.color = 'var(--vscode-testing-iconFailed)';
+                wordNameElement.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                wordDisplay.classList.add('shake');
+            }
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 根据正确性设置不同的显示时间
+            const displayTime = isCorrect ? 500 : 2000; // 正确0.5秒，错误2秒
+            
+            // 显示指定时间后跳转到下一个单词或恢复默写模式
+            setTimeout(() => {
+                if (isCorrect) {
+                    // 正确答案：跳转到下一个单词
+                    vscode.postMessage({
+                        command: 'nextWord'
+                    });
+                } else {
+                    // 错误答案：恢复默写模式，隐藏单词
+                    wordNameElement.style.display = 'none';
+                    wordNameElement.style.color = '';
+                    wordNameElement.style.backgroundColor = '';
+                    wordDisplay.classList.remove('shake');
+                    
+                    // 隐藏音标（恢复默写模式）
+                    const wordPhonetics = document.querySelector('.word-phonetics');
+                    if (wordPhonetics) {
+                        wordPhonetics.style.display = 'none';
+                    }
+                    
+                    // 重新聚焦输入框
+                    input.focus();
+                }
+            }, displayTime);
         }
         
         // 初始化
@@ -760,8 +993,10 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         input.addEventListener('input', function() {
             const inputText = this.value;
             
-            // 更新高亮显示
-            updateHighlight(inputText);
+            // 只在正常模式下更新高亮显示
+            if (practiceMode === 'normal') {
+                updateHighlight(inputText);
+            }
             
             // 检查输入
             const result = checkInput(inputText);
