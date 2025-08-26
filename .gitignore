@@ -1,0 +1,15 @@
+out
+node_modules
+.vscode-test/
+*.vsix
+.DS_Store
+.nyc_output
+coverage/
+**/*.js.map
+**/*.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+data/records/
