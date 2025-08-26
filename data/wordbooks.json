@@ -1,0 +1,57 @@
+[
+  {
+    "id": "hongbaoshu-2026",
+    "name": "2026考研英语 hongbaoshu",
+    "description": "2026 考研词汇 (必考词+基础词+超纲词）",
+    "category": "中国考试",
+    "tags": ["考研"],
+    "url": "hongbaoshu-2026.json",
+    "length": 4858,
+    "language": "en",
+    "languageCategory": "en"
+  },
+  {
+    "id": "nce1",
+    "name": "新概念英语-1",
+    "description": "新概念英语第一册",
+    "category": "青少年英语",
+    "tags": ["新概念英语"],
+    "url": "NCE_1.json",
+    "length": 900,
+    "language": "en",
+    "languageCategory": "en"
+  },
+  {
+    "id": "nce2",
+    "name": "新概念英语-2",
+    "description": "新概念英语第二册",
+    "category": "青少年英语",
+    "tags": ["新概念英语"],
+    "url": "NCE_2.json",
+    "length": 858,
+    "language": "en",
+    "languageCategory": "en"
+  },
+  {
+    "id": "nce3",
+    "name": "新概念英语-3",
+    "description": "新概念英语第三册",
+    "category": "青少年英语",
+    "tags": ["新概念英语"],
+    "url": "NCE_3.json",
+    "length": 1052,
+    "language": "en",
+    "languageCategory": "en"
+  },
+  {
+    "id": "nce4",
+    "name": "新概念英语-4",
+    "description": "新概念英语第四册",
+    "category": "青少年英语",
+    "tags": ["新概念英语"],
+    "url": "NCE_4.json",
+    "length": 784,
+    "language": "en",
+    "languageCategory": "en"
+  }
+]
