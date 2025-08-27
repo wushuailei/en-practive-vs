@@ -78,6 +78,9 @@ src/
 ├── 📄 wordbooks.ts          # 词书文件管理
 ├── 📄 practiceProvider.ts   # 练习界面提供者
 ├── 📄 settingsProvider.ts   # 设置界面提供者
+├── 📄 analyticsProvider.ts  # 记录界面提供者
+├── 📄 dayRecordManager.ts   # 每日记录管理器
+├── 📄 dayAnalysisManager.ts # 每日分析管理器
 └── 📄 shardedRecordManager.ts # 分片记录管理器
 ```
 
@@ -93,9 +96,15 @@ data/
 │   ├── 📄 NCE_2.json            # 新概念英语第二册
 │   ├── 📄 NCE_3.json            # 新概念英语第三册
 │   └── 📄 NCE_4.json            # 新概念英语第四册
-└── 📁 records/             # 练习记录存储
-    ├── 📄 {dictId}_main.json    # 主记录文件
-    └── 📄 {dictId}_ch{N}.json   # 章节记录文件
+├── 📁 records/             # 练习记录存储
+│   ├── 📄 {dictId}_main.json    # 主记录文件
+│   └── 📄 {dictId}_ch{N}.json   # 章节记录文件
+├── 📁 dayRecords/          # 每日记录存储
+│   ├── 📄 {date}.json           # 正常模式每日记录
+│   ├── 📄 {date}_dictation.json # 默写模式每日记录
+│   └── 📄 totalRecords.json     # 总记录文件
+└── 📁 dayRecordsAnalyze/   # 每日分析报告存储
+    └── 📄 {date}_analysis.json  # 每日分析报告
 ```
 
 ### 编译输出目录 (/out)
@@ -125,6 +134,8 @@ media/
 - 命令注册
 - 视图容器初始化
 - 全局状态管理
+- 每日记录文件初始化
+- 分析报告生成检查
 ```
 
 **设计模式**：单例模式 + 依赖注入
@@ -142,6 +153,10 @@ interface WordBookInfo         # 词书信息
 interface WordRecord           # 单词练习记录
 interface ChapterRecord        # 章节练习记录
 interface DictRecord           # 词典练习记录
+interface DayRecord           # 每日记录
+interface DayDictRecord       # 每日词典记录
+interface DayChapterRecord    # 每日章节记录
+type PracticeMode = 'normal' | 'dictation'  # 练习模式
 ```
 
 **设计原则**：类型安全 + 向前兼容
@@ -179,6 +194,7 @@ interface DictRecord           # 词典练习记录
 - 用户输入处理
 - 进度跟踪和记录
 - 顺序模式练习
+- 每日记录更新
 ```
 
 **架构模式**：MVP (Model-View-Presenter)
@@ -196,7 +212,41 @@ interface DictRecord           # 词典练习记录
 
 **UI模式**：服务端渲染 + 客户端交互
 
-### 7. 分片记录管理器 (shardedRecordManager.ts)
+### 7. 记录提供者 (analyticsProvider.ts)
+**职责**：记录界面和报告展示
+```typescript
+// 核心功能
+- 记录界面渲染
+- 统计数据展示
+- 学习进度可视化
+- 每日报告查看
+```
+
+### 8. 每日记录管理器 (dayRecordManager.ts)
+**职责**：每日练习记录的管理和存储
+```typescript
+// 核心功能
+- 每日记录文件创建和管理
+- 单词练习记录（去重）
+- 按练习模式区分记录
+- 总记录维护
+- 分析状态管理
+```
+
+**存储策略**：按日期和模式分文件存储
+
+### 9. 每日分析管理器 (dayAnalysisManager.ts)
+**职责**：每日练习数据的分析和报告生成
+```typescript
+// 核心功能
+- 每日分析报告生成
+- 多模式数据整合
+- 词典详细信息获取
+- 分析状态更新
+- 缺失报告检查
+```
+
+### 10. 分片记录管理器 (shardedRecordManager.ts)
 **职责**：高性能的练习数据存储和管理
 ```typescript
 // 核心功能
@@ -271,10 +321,39 @@ graph TD
 - **缓存机制**：热点数据内存缓存
 - **批量操作**：减少文件I/O次数
 
-### 3. 数据映射机制
+### 3. 每日记录系统
+
+#### 存储架构设计
+```
+每日记录存储：
+┌─────────────────┐
+│   总记录文件     │  # totalRecords.json
+├─────────────────┤
+│ - 练习日期列表   │
+│ - 分析生成状态   │
+└─────────────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌─────────┐ ┌─────────┐
+│ 正常模式 │ │ 默写模式 │  # {date}.json, {date}_dictation.json
+├─────────┤ ├─────────┤
+│词典记录  │ │词典记录  │
+│章节记录  │ │章节记录  │
+│单词记录  │ │单词记录  │
+└─────────┘ └─────────┘
+```
+
+#### 记录管理策略
+- **自动创建**：插件启动时自动创建当日记录文件
+- **模式区分**：正常模式和默写模式分别记录
+- **去重机制**：每天每个单词只记录一次
+- **按需加载**：只在需要时读取记录文件
+
+### 4. 数据映射机制
 ```
 用户练习层面 ← → 章节内索引 ← → 实际单词数据
-       ↓                \u2193               ↓
+       ↓                ↓               ↓
    练习界面显示       章节内序号        实际单词数据
 ```
 
@@ -335,6 +414,36 @@ graph TD
 - 词书实时切换
 - 设置即时生效
 - 状态实时同步
+
+### 3. 记录界面 (Records View)
+```
+┌─────────────────────────────────────┐
+│ 📊 学习记录                       │
+├─────────────────────────────────────┤
+│ 📅 日期选择                          │
+│ [2025-08-26] [◀] [▶] [今日]          │
+├─────────────────────────────────────┤
+│ 📈 总体统计                          │
+│ 总词典数: 2                         │
+│ 总章节数: 15                        │
+│ 总单词数: 126                       │
+├─────────────────────────────────────┤
+│ 📚 词典详情                          │
+│ 红宝书2026                          │
+│ 正常模式: 8章 64词                  │
+│ 默写模式: 5章 42词                  │
+│                                     │
+│ 新概念英语-1                        │
+│ 正常模式: 2章 18词                  │
+│ 默写模式: 0章 0词                   │
+└─────────────────────────────────────┘
+```
+
+**功能特性**：
+- 按日期查看学习情况
+- 多模式数据对比
+- 词典详细统计
+- 学习趋势分析
 
 ---
 
@@ -401,6 +510,101 @@ graph TD
     "totalErrorCount": 1,
     "totalCompletedWords": 0,
     "overallCorrectRate": 75
+  }
+}
+```
+
+### 5. 每日记录结构 (dayRecords/{date}.json)
+```json
+{
+  "date": "2025-08-26",
+  "dicts": {
+    "hongbaoshu-2026": {
+      "dictId": "hongbaoshu-2026",
+      "dictName": "红宝书2026",
+      "chapters": {
+        "1": {
+          "chapterNumber": 1,
+          "words": ["remote", "remove", "report"]
+        },
+        "2": {
+          "chapterNumber": 2,
+          "words": ["research", "resource", "response"]
+        }
+      }
+    }
+  }
+}
+```
+
+### 6. 总记录结构 (dayRecords/totalRecords.json)
+```json
+[
+  {
+    "date": "2025-08-25",
+    "analysisGenerated": true
+  },
+  {
+    "date": "2025-08-26",
+    "analysisGenerated": false
+  }
+]
+```
+
+### 7. 分析报告结构 (dayRecordsAnalyze/{date}_analysis.json)
+```json
+{
+  "date": "2025-08-26",
+  "generatedAt": "2025-08-26T10:30:00.000Z",
+  "normalMode": {
+    "dicts": {
+      "hongbaoshu-2026": {
+        "dictId": "hongbaoshu-2026",
+        "dictName": "红宝书2026",
+        "chapters": {
+          "1": {
+            "chapterNumber": 1,
+            "wordCount": 3,
+            "words": ["remote", "remove", "report"]
+          }
+        }
+      }
+    }
+  },
+  "dictationMode": {
+    "dicts": {
+      "hongbaoshu-2026": {
+        "dictId": "hongbaoshu-2026",
+        "dictName": "红宝书2026",
+        "chapters": {
+          "2": {
+            "chapterNumber": 2,
+            "wordCount": 2,
+            "words": ["research", "resource"]
+          }
+        }
+      }
+    }
+  },
+  "summary": {
+    "totalDicts": 1,
+    "totalChapters": 2,
+    "totalWords": 5,
+    "dicts": [
+      {
+        "dictId": "hongbaoshu-2026",
+        "dictName": "红宝书2026",
+        "totalWordsInDict": 4858,
+        "normalMode": {
+          "chapters": 1,
+          "words": 3
+        },
+        "dictationMode": {
+          "chapters": 1,
+          "words": 2
+        }
+      }
+    ]
   }
 }
 ```
@@ -492,6 +696,7 @@ try {
 - **统计增强**：学习曲线、遗忘曲线分析
 - **社交功能**：学习排行榜、成就系统
 - **智能推荐**：个性化学习路径推荐
+- **多维度分析**：时间、词典、章节等多维度分析
 
 ### 2. 技术扩展点
 - **多语言支持**：支持其他语言学习
@@ -564,6 +769,8 @@ F5 (在VS Code中)
 - [x] 基础练习功能完善
 - [x] 分片存储性能优化
 - [x] 顺序练习算法实现
+- [x] 每日记录管理功能
+- [x] 学习分析报告功能
 - [ ] 用户反馈收集和优化
 - [ ] 更多词典资源集成
 
@@ -590,6 +797,7 @@ EnPractice项目通过精心设计的架构和技术选型，成功地将英语�
 3. **模块化设计**：易于维护和扩展
 4. **用户体验优先**：响应迅速、操作直观
 5. **数据安全可靠**：完善的错误处理和数据保护
+6. **学习追踪完善**：每日记录和分析报告功能
 
 该项目不仅是一个功能完整的VS Code插件，更是一个可扩展、高性能的英语学习平台的技术基础。通过持续的优化和功能扩展，EnPractice将为广大程序员提供更好的英语学习体验。
 
@@ -597,4 +805,4 @@ EnPractice项目通过精心设计的架构和技术选型，成功地将英语�
 
 **项目状态**: 🚀 **核心功能已完成，持续优化中** 🚀
 
-*最后更新时间: 2025-08-26*
+*最后更新时间: 2025-08-27*

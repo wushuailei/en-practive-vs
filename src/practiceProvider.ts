@@ -239,15 +239,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                         break;
                     case 'wordPracticeResult':
                         // 记录单词练习结果
-                        if (this.currentDictId && message.word && typeof message.isCorrect === 'boolean') {
-                            await this.recordManager.recordWordPractice(
-                                this.currentDictId,
-                                this.settings.currentChapter,
-                                message.word,
-                                message.isCorrect,
-                                this.settings.practiceMode
-                            );
-                        }
+                        await this.recordWordPractice(message.word, message.isCorrect);
                         break;
                     case 'ready':
                         // webview加载完成后，发送数据
@@ -487,8 +479,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         }
         
         .word-name .letter.correct {
-            color: var(--vscode-testing-iconPassed);
-            background-color: rgba(22, 163, 74, 0.2);
+            color: #9333ea;
+            background-color: rgba(147, 51, 234, 0.2);
             border-radius: 2px;
         }
         
@@ -562,7 +554,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         <div class="chapter-info" id="chapterInfo" style="background-color: var(--vscode-editor-widget-background); border: 1px solid var(--vscode-widget-border); border-radius: 4px; padding: 10px; margin-bottom: 15px; font-size: 12px;">
             <div class="info-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 15px;">
                 <div class="chapter-display" style="flex: 0 0 auto;">章节: - / - | 单词: - / -</div>
-                <div class="mode-display" style="flex: 0 0 auto; color: var(--vscode-charts-blue); font-weight: bold;">模式: ${practiceMode === 'normal' ? '📝 正常模式' : '✏️ 默写模式'}</div>
+
                 <div class="chapter-selector" style="display: flex; align-items: center; gap: 8px; flex: 0 0 auto;">
                     <span>选择章节:</span>
                     <select class="chapter-select" id="chapterSelect" onchange="switchChapter(this.value)" style="background-color: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); padding: 2px 6px; border-radius: 2px; font-size: 11px;">
@@ -636,11 +628,7 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                             // 更新练习模式（如果有提供）
                             if (settings && settings.practiceMode) {
                                 practiceMode = settings.practiceMode;
-                                // 更新模式显示
-                                const modeDisplay = document.querySelector('.mode-display');
-                                if (modeDisplay) {
-                                    modeDisplay.textContent = '模式: ' + (practiceMode === 'normal' ? '📝 正常模式' : '✏️ 默写模式');
-                                }
+
                             }
                             
                             // 更新章节信息
@@ -808,22 +796,26 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             
             // 检查是否完全匹配
             if (inputLower === wordLower) {
-                // 记录练习结果
+                // 先记录练习结果，然后再进行后续操作
                 vscode.postMessage({
                     command: 'wordPracticeResult',
                     word: word.name,
                     isCorrect: true
                 });
                 
-                if (practiceMode === 'dictation') {
-                    // 默写模式：显示正确的单词，然后跳转
-                    showWordInDictationMode(word, true);
-                } else {
-                    // 正常模式：直接跳转到下一个单词
-                    vscode.postMessage({
-                        command: 'nextWord'
-                    });
-                }
+                // 等待一小段时间确保记录先处理，然后再进行后续操作
+                setTimeout(() => {
+                    if (practiceMode === 'dictation') {
+                        // 默写模式：显示正确的单词，然后跳转
+                        showWordInDictationMode(word, true);
+                    } else {
+                        // 正常模式：直接跳转到下一个单词
+                        vscode.postMessage({
+                            command: 'nextWord'
+                        });
+                    }
+                }, 10); // 10ms延迟，确保顺序执行
+                
                 return true;
             }
             
@@ -932,8 +924,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             
             // 根据正确性添加样式
             if (isCorrect) {
-                wordNameElement.style.color = 'var(--vscode-testing-iconPassed)';
-                wordNameElement.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+                wordNameElement.style.color = '#9333ea';
+                wordNameElement.style.backgroundColor = 'rgba(147, 51, 234, 0.2)';
             } else {
                 wordNameElement.style.color = 'var(--vscode-testing-iconFailed)';
                 wordNameElement.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
@@ -1012,5 +1004,31 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
     </script>
 </body>
 </html>`;
+    }
+
+    // 记录单词练习结果
+    private async recordWordPractice(word: string, isCorrect: boolean) {
+        if (this.currentDictId && word && typeof isCorrect === 'boolean') {
+            // 获取当前词典名称
+            let dictName = '';
+            try {
+                const wordBooksList = await getStoredWordBooks(this.context);
+                const targetBook = wordBooksList.find((book: any) => book.id === this.currentDictId);
+                if (targetBook) {
+                    dictName = targetBook.name;
+                }
+            } catch (error) {
+                console.error('获取词典名称失败:', error);
+            }
+            
+            await this.recordManager.recordWordPractice(
+                this.currentDictId,
+                this.settings.currentChapter,
+                word,
+                isCorrect,
+                this.settings.practiceMode,
+                dictName // 传递词典名称
+            );
+        }
     }
 }

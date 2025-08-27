@@ -17,8 +17,8 @@
       "activitybar": [
         {
           "id": "enpractice",
-          "title": "English Practice",
-          "icon": "./media/en.png"
+          "title": "EnPractice",
+          "icon": "./media/practice.png"
         }
       ]
     },
@@ -40,8 +40,13 @@
       },
       {
         "command": "enpractice.openAnalytics",
-        "title": "Data Analytics",
-        "icon": "./media/analyze.png"
+        "title": "Records",
+        "icon": "./media/record.png"
+      },
+      {
+        "command": "enpractice.openDataAnalysis",
+        "title": "Data Analysis",
+        "icon": "$(graph)"
       }
     ],
     "menus": {
@@ -53,6 +58,11 @@
         },
         {
           "command": "enpractice.openAnalytics",
+          "when": "view == enpractice.practiceView",
+          "group": "navigation"
+        },
+        {
+          "command": "enpractice.openDataAnalysis",
           "when": "view == enpractice.practiceView",
           "group": "navigation"
         }

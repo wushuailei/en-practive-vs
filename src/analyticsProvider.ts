@@ -23,7 +23,7 @@ export class AnalyticsProvider {
 
         this.panel = vscode.window.createWebviewPanel(
             'enpractice.analytics',
-            'Data Analytics',
+            'Records',
             vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -32,8 +32,8 @@ export class AnalyticsProvider {
         );
 
         this.panel.iconPath = {
-            light: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'analyze.png')),
-            dark: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'analyze.png'))
+            light: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'record.svg')),
+            dark: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'record.svg'))
         };
 
         this.panel.webview.html = this.getWebviewContent();
@@ -98,7 +98,7 @@ export class AnalyticsProvider {
 
     private async sendWordBooks() {
         try {
-            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'wordbooks.json');
+            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'config', 'wordbooks.json');
             if (fs.existsSync(wordBooksPath)) {
                 const wordBooksContent = fs.readFileSync(wordBooksPath, 'utf-8');
                 const wordBooks: WordBookInfo[] = JSON.parse(wordBooksContent);
@@ -116,7 +116,7 @@ export class AnalyticsProvider {
     private async loadWordBookData(wordBookId: string) {
         try {
             // 获取词典信息
-            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'wordbooks.json');
+            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'config', 'wordbooks.json');
             const wordBooksContent = fs.readFileSync(wordBooksPath, 'utf-8');
             const wordBooks: WordBookInfo[] = JSON.parse(wordBooksContent);
             const wordBook = wordBooks.find(wb => wb.id === wordBookId);
@@ -183,33 +183,33 @@ export class AnalyticsProvider {
 
     private async loadWordBookDataByMode(wordBookId: string, practiceMode: string) {
         try {
-            console.log(`📊 数据分析后端: 开始加载词书 ${wordBookId}, 模式: ${practiceMode}`);
+            console.log(`📊 记录后端: 开始加载词书 ${wordBookId}, 模式: ${practiceMode}`);
             
             // 更新当前练习模式
             this.currentPracticeMode = practiceMode as PracticeMode;
-            console.log(`📊 数据分析后端: 当前模式更新为 ${this.currentPracticeMode}`);
+            console.log(`📊 记录后端: 当前模式更新为 ${this.currentPracticeMode}`);
             
             // 获取词典信息
-            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'wordbooks.json');
+            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'config', 'wordbooks.json');
             const wordBooksContent = fs.readFileSync(wordBooksPath, 'utf-8');
             const wordBooks: WordBookInfo[] = JSON.parse(wordBooksContent);
             const wordBook = wordBooks.find(wb => wb.id === wordBookId);
             
             if (!wordBook) {
-                console.error(`📊 数据分析后端: 找不到词书 ${wordBookId}`);
+                console.error(`📊 记录后端: 找不到词书 ${wordBookId}`);
                 return;
             }
             
-            console.log(`📊 数据分析后端: 找到词书 ${wordBook.name}, 单词数: ${wordBook.length}`);
+            console.log(`📊 记录后端: 找到词书 ${wordBook.name}, 单词数: ${wordBook.length}`);
 
             // 加载指定模式的词典记录
             const mode = practiceMode as PracticeMode;
             const record = await this.recordManager.loadDictRecord(wordBookId, wordBook.name || '', wordBook.length || 0, mode);
-            console.log(`📊 数据分析后端: 加载主记录成功`, record);
+            console.log(`📊 记录后端: 加载主记录成功`, record);
             
             // 从章节记录中计算全局统计数据
             const globalStats = await this.calculateGlobalStats(wordBookId, record.totalChapters, mode);
-            console.log(`📊 数据分析后端: 全局统计计算完成`, globalStats);
+            console.log(`📊 记录后端: 全局统计计算完成`, globalStats);
             
             // 计算整体统计数据
             const overallStats = {
@@ -221,11 +221,11 @@ export class AnalyticsProvider {
                 globalStats: globalStats
             };
             
-            console.log(`📊 数据分析后端: 整体统计数据构建完成`, overallStats);
+            console.log(`📊 记录后端: 整体统计数据构建完成`, overallStats);
 
             // 获取章节统计数据
             const chapterStats = [];
-            console.log(`📊 数据分析后端: 开始加载 ${record.totalChapters} 个章节的数据`);
+            console.log(`📊 记录后端: 开始加载 ${record.totalChapters} 个章节的数据`);
             
             for (let i = 1; i <= record.totalChapters; i++) {
                 try {
@@ -242,7 +242,7 @@ export class AnalyticsProvider {
                     chapterStats.push(chapterStat);
                     
                     if (i <= 3) {
-                        console.log(`📊 数据分析后端: 第${i}章数据`, chapterStat);
+                        console.log(`📊 记录后端: 第${i}章数据`, chapterStat);
                     }
                 } catch (error) {
                     const defaultStat = {
@@ -257,12 +257,12 @@ export class AnalyticsProvider {
                     chapterStats.push(defaultStat);
                     
                     if (i <= 3) {
-                        console.log(`📊 数据分析后端: 第${i}章数据(默认)`, defaultStat);
+                        console.log(`📊 记录后端: 第${i}章数据(默认)`, defaultStat);
                     }
                 }
             }
             
-            console.log(`📊 数据分析后端: 章节数据加载完成，共 ${chapterStats.length} 个章节`);
+            console.log(`📊 记录后端: 章节数据加载完成，共 ${chapterStats.length} 个章节`);
 
             const responseData = {
                 overallStats,
@@ -271,7 +271,7 @@ export class AnalyticsProvider {
                 selectedMode: practiceMode
             };
             
-            console.log(`📊 数据分析后端: 发送 updateAnalyticsByMode 消息`, {
+            console.log(`📊 记录后端: 发送 updateAnalyticsByMode 消息`, {
                 statsCount: Object.keys(overallStats).length,
                 chapterCount: chapterStats.length,
                 wordBookId: wordBookId,
@@ -284,14 +284,14 @@ export class AnalyticsProvider {
             });
 
         } catch (error) {
-            console.error('数据分析后端: 加载词书数据失败:', error);
+            console.error('记录后端: 加载词书数据失败:', error);
         }
     }
 
     private async loadChapterWords(wordBookId: string, chapter: number, practiceMode: PracticeMode = 'normal') {
         try {
             // 获取词典信息
-            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'wordbooks.json');
+            const wordBooksPath = path.join(this.context.extensionPath, 'data', 'config', 'wordbooks.json');
             const wordBooksContent = fs.readFileSync(wordBooksPath, 'utf-8');
             const wordBooks: WordBookInfo[] = JSON.parse(wordBooksContent);
             const wordBook = wordBooks.find(wb => wb.id === wordBookId);
@@ -458,7 +458,7 @@ export class AnalyticsProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Analytics</title>
+    <title>Records</title>
     <style>
         body {
             font-family: var(--vscode-font-family);
@@ -770,7 +770,7 @@ export class AnalyticsProvider {
 <body>
     <div class="container">
         <div class="header">
-            <h2>📊 数据分析</h2>
+            <h2>📊 记录</h2>
             <div class="header-controls">
                 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="刷新数据">🔄 刷新</button>
                 <div class="wordbook-selector">
@@ -984,7 +984,7 @@ export class AnalyticsProvider {
         }
         
         function selectPracticeMode(practiceMode) {
-            console.log('📊 数据分析前端: 选择练习模式', practiceMode, '当前词书ID:', currentWordBookId);
+            console.log('📊 记录前端: 选择练习模式', practiceMode, '当前词书ID:', currentWordBookId);
             
             if (currentWordBookId && practiceMode) {
                 document.getElementById('loadingContent').style.display = 'block';
@@ -999,14 +999,14 @@ export class AnalyticsProvider {
         }
 
         function updateAnalyticsDisplay(data) {
-            console.log('📊 数据分析前端: 接收到数据', data);
+            console.log('📊 记录前端: 接收到数据', data);
             
             document.getElementById('loadingContent').style.display = 'none';
             document.getElementById('analyticsContent').style.display = 'flex';
             
             // 更新整体统计
             const stats = data.overallStats;
-            console.log('📊 数据分析前端: 整体统计', stats);
+            console.log('📊 记录前端: 整体统计', stats);
             
             document.getElementById('dictName').textContent = stats.dictName;
             document.getElementById('totalWords').textContent = stats.totalWords;
@@ -1015,17 +1015,17 @@ export class AnalyticsProvider {
             
             // 保存当前练习模式
             currentPracticeMode = stats.practiceMode;
-            console.log('📊 数据分析前端: 当前练习模式设置为', currentPracticeMode);
+            console.log('📊 记录前端: 当前练习模式设置为', currentPracticeMode);
             
             // 同步模式选择器
             const modeSelect = document.getElementById('modeSelect');
             if (modeSelect) {
                 modeSelect.value = currentPracticeMode;
-                console.log('📊 数据分析前端: 模式选择器已同步为', currentPracticeMode);
+                console.log('📊 记录前端: 模式选择器已同步为', currentPracticeMode);
             }
             
             const globalStats = stats.globalStats;
-            console.log('📊 数据分析前端: 全局统计', globalStats);
+            console.log('📊 记录前端: 全局统计', globalStats);
             
             document.getElementById('totalPracticeCount').textContent = globalStats.totalPracticeCount;
             document.getElementById('totalErrorCount').textContent = globalStats.totalErrorCount;
@@ -1034,7 +1034,7 @@ export class AnalyticsProvider {
             
             // 保存章节数据
             chapterStatsData = data.chapterStats;
-            console.log('📊 数据分析前端: 章节统计数据', chapterStatsData.length + '个章节');
+            console.log('📊 记录前端: 章节统计数据', chapterStatsData.length + '个章节');
             
             // 更新章节表格
             updateChapterTable(chapterStatsData);
@@ -1222,14 +1222,14 @@ export class AnalyticsProvider {
         }
         
         function refreshData() {
-            console.log('📊 数据分析前端: 刷新数据被调用');
+            console.log('📊 记录前端: 刷新数据被调用');
             
             if (currentWordBookId) {
                 // 获取当前选中的练习模式
                 const modeSelect = document.getElementById('modeSelect');
                 const practiceMode = modeSelect ? modeSelect.value : 'normal';
                 
-                console.log('📊 数据分析前端: 当前词书ID:', currentWordBookId, '选中模式:', practiceMode);
+                console.log('📊 记录前端: 当前词书ID:', currentWordBookId, '选中模式:', practiceMode);
                 
                 vscode.postMessage({
                     command: 'selectPracticeMode',

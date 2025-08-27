@@ -4,7 +4,7 @@ import { PluginSettings, defaultSettings } from './types';
 // 设置管理函数
 export async function getSettings(context: vscode.ExtensionContext): Promise<PluginSettings> {
     try {
-        const settingsPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'settings.json');
+        const settingsPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'config', 'settings.json');
         const fileData = await vscode.workspace.fs.readFile(settingsPath);
         const content = Buffer.from(fileData).toString('utf8');
         const settings = JSON.parse(content) as PluginSettings;
@@ -18,7 +18,7 @@ export async function getSettings(context: vscode.ExtensionContext): Promise<Plu
 
 export async function saveSettings(context: vscode.ExtensionContext, settings: PluginSettings): Promise<void> {
     try {
-        const settingsPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'settings.json');
+        const settingsPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'config', 'settings.json');
         const content = JSON.stringify(settings, null, 2);
         await vscode.workspace.fs.writeFile(settingsPath, Buffer.from(content, 'utf8'));
         console.log('保存设置成功:', settings);

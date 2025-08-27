@@ -1,11 +1,11 @@
 {
-  "currentWordbook": "hongbaoshu-2026",
-  "wordsPerChapter": 20,
+  "currentWordbook": "nce1",
+  "wordsPerChapter": 10,
   "practiceMode": "normal",
   "showPhonetics": true,
   "autoNextWord": false,
   "chapterLoop": true,
-  "lastUpdated": "2025-08-26",
+  "lastUpdated": "2025-08-27",
   "currentChapter": 1,
-  "currentWordIndex": 6
+  "currentWordIndex": 8
 }

@@ -5,7 +5,7 @@ import { WordBookInfo, WordData, defaultWordsData } from './types';
 export async function getStoredWordBooks(context: vscode.ExtensionContext): Promise<WordBookInfo[]> {
     try {
         // 从 data/wordbooks.json 读取词书列表
-        const wordBooksListPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'wordbooks.json');
+        const wordBooksListPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'config', 'wordbooks.json');
         console.log('尝试读取词书列表文件:', wordBooksListPath.fsPath);
         
         const fileData = await vscode.workspace.fs.readFile(wordBooksListPath);

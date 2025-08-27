@@ -80,6 +80,33 @@ export interface DictRecord {
 // 固定章节单词数量为10
 export const FIXED_WORDS_PER_CHAPTER = 10;
 
+// 每日单词练习记录接口
+export interface DayWordRecord {
+    word: string;
+    dictId: string;
+    chapterNumber: number;
+    practiceTime: string; // 练习时间
+}
+
+// 每日章节记录接口
+export interface DayChapterRecord {
+    chapterNumber: number;
+    words: string[]; // 当天练习过的单词列表
+}
+
+// 每日词典记录接口
+export interface DayDictRecord {
+    dictId: string;
+    dictName: string;
+    chapters: { [chapterNumber: string]: DayChapterRecord };
+}
+
+// 每日记录文件接口
+export interface DayRecord {
+    date: string; // YYYY-MM-DD格式
+    dicts: { [dictId: string]: DayDictRecord };
+}
+
 // 默认练习记录（只保留基本信息）
 export const createDefaultDictRecord = (dictId: string, dictName: string, totalWords: number, practiceMode: PracticeMode = 'normal'): DictRecord => {
     const totalChapters = Math.ceil(totalWords / FIXED_WORDS_PER_CHAPTER);

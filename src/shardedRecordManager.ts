@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { DictRecord, WordRecord, ChapterRecord, createDefaultDictRecord, FIXED_WORDS_PER_CHAPTER, PracticeMode } from './types';
+import { DayRecordManager } from './dayRecordManager';
 
 /**
  * 分片记录管理器
@@ -7,19 +8,21 @@ import { DictRecord, WordRecord, ChapterRecord, createDefaultDictRecord, FIXED_W
  */
 export class ShardedRecordManager {
     private context: vscode.ExtensionContext;
+    private dayRecordManager: DayRecordManager;
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        this.dayRecordManager = new DayRecordManager(context);
     }
 
     // 获取主记录文件路径（不包含章节详细数据）
     private getMainRecordPath(dictId: string, practiceMode: PracticeMode): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'records', `${dictId}_${practiceMode}_main.json`);
+        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'records', `${dictId}_${practiceMode}_main.json`);
     }
 
     // 获取章节记录文件路径
     private getChapterRecordPath(dictId: string, chapterNumber: number, practiceMode: PracticeMode): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'records', `${dictId}_${practiceMode}_ch${chapterNumber}.json`);
+        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'records', `${dictId}_${practiceMode}_ch${chapterNumber}.json`);
     }
 
     // 加载主记录（不包含章节详细数据）
@@ -120,7 +123,8 @@ export class ShardedRecordManager {
         chapterNumber: number, 
         word: string, 
         isCorrect: boolean,
-        practiceMode: PracticeMode = 'normal'
+        practiceMode: PracticeMode = 'normal',
+        dictName: string = '' // 添加词典名称参数
     ): Promise<void> {
         try {
             // 加载章节记录
@@ -156,9 +160,8 @@ export class ShardedRecordManager {
                 .filter((wr: any) => wr.practiceCount > 0).length;
             
             // 计算章节完成次数（所有单词正确次数中的最小值）
-            const correctCounts = Object.values(chapterRecord.wordRecords)
-                .map((wr: any) => wr.correctCount)
-                .filter(count => count > 0); // 只考虑有练习记录的单词
+            const allWordRecords = Object.values(chapterRecord.wordRecords).filter((wr: any) => wr.practiceCount > 0);
+            const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
             chapterRecord.chapterCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
             
             chapterRecord.lastPracticeTime = new Date().toISOString();
@@ -166,6 +169,10 @@ export class ShardedRecordManager {
             // 保存章节记录
             await this.saveChapterRecord(dictId, chapterRecord, practiceMode);
             
+            // 记录每日练习（每天每个单词只记录一次）
+            if (dictName) {
+                await this.dayRecordManager.recordWordPractice(dictId, dictName, chapterNumber, word, practiceMode);
+            }
         } catch (error) {
             console.error('记录单词练习失败:', error);
         }
@@ -176,9 +183,8 @@ export class ShardedRecordManager {
         try {
             const chapterRecord = await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
             // 重新计算章节完成统计
-            const correctCounts = Object.values(chapterRecord.wordRecords)
-                .map((wr: any) => wr.correctCount)
-                .filter(count => count > 0);
+            const allWordRecords = Object.values(chapterRecord.wordRecords).filter((wr: any) => wr.practiceCount > 0);
+            const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
             chapterRecord.chapterCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
             chapterRecord.lastPracticeTime = new Date().toISOString();
             await this.saveChapterRecord(dictId, chapterRecord, practiceMode);

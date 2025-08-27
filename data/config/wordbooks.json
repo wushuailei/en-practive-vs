@@ -1,0 +1,47 @@
+[
+  {
+    "id": "hongbaoshu-2026",
+    "name": "红宝书2026",
+    "description": "考研英语词汇红宝书",
+    "length": 4858,
+    "category": "考研",
+    "tags": ["考研", "高频"],
+    "url": "hongbaoshu-2026.json"
+  },
+  {
+    "id": "nce1",
+    "name": "新概念英语-1",
+    "description": "新概念英语第一册",
+    "length": 900,
+    "category": "基础",
+    "tags": ["基础", "入门"],
+    "url": "NCE_1.json"
+  },
+  {
+    "id": "nce2",
+    "name": "新概念英语-2",
+    "description": "新概念英语第二册",
+    "length": 1200,
+    "category": "进阶",
+    "tags": ["进阶", "实用"],
+    "url": "NCE_2.json"
+  },
+  {
+    "id": "nce3",
+    "name": "新概念英语-3",
+    "description": "新概念英语第三册",
+    "length": 1500,
+    "category": "高级",
+    "tags": ["高级", "写作"],
+    "url": "NCE_3.json"
+  },
+  {
+    "id": "nce4",
+    "name": "新概念英语-4",
+    "description": "新概念英语第四册",
+    "length": 1800,
+    "category": "高级",
+    "tags": ["高级", "文学"],
+    "url": "NCE_4.json"
+  }
+]
