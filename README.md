@@ -209,7 +209,41 @@ npm run compile
 # 监视模式编译
 npm run watch
 
+# 打包成vsix文件
+npm run package
+
+# 完整构建流程（编译+打包）
+npm run build
+
 # 调试插件（在VS Code中按F5）
+```
+
+### 打包与分发
+```bash
+# 安装vsce打包工具（全局安装，只需一次）
+npm install -g @vscode/vsce
+
+# 快速打包
+npm run package
+
+# 完整构建
+npm run build
+```
+
+**打包后的文件：**
+- 生成文件：`enpractice-0.0.1.vsix`
+- 文件大小：约500KB
+- 包含内容：编译后的代码、词典数据、配置文件等
+
+**安装打包后的插件：**
+```bash
+# 方法1：命令行安装
+code --install-extension enpractice-0.0.1.vsix
+
+# 方法2：VS Code界面安装
+# 1. 按 Ctrl+Shift+P 打开命令面板
+# 2. 输入 "Extensions: Install from VSIX..."
+# 3. 选择 enpractice-0.0.1.vsix 文件
 ```
 
 ### 调试插件
