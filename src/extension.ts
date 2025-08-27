@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
     
     // 注册数据分析命令
-    let openDataAnalysisCommand = vscode.commands.registerCommand('enpractice.openDataAnalysis', () => {
+    const openDataAnalysisCommand = vscode.commands.registerCommand('enpractice.openDataAnalysis', () => {
         dataAnalysisProvider.show();
     });
 
@@ -89,6 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
     }).catch(error => {
         console.error('检查缺失分析报告失败:', error);
     });
+
 
     context.subscriptions.push(openSettingsCommand, openAnalyticsCommand, openDataAnalysisCommand, fixChapterCompletionCommand);
 }

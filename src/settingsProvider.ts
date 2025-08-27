@@ -7,7 +7,7 @@ import { PracticeWebviewProvider } from './practiceProvider';
 export function showSettingsPanel(context: vscode.ExtensionContext, practiceProvider: PracticeWebviewProvider) {
     // 创建设置面板
     const panel = vscode.window.createWebviewPanel(
-        'enpracticeSettings',
+        'enpractice.settings',
         'English Practice Settings',
         vscode.ViewColumn.One,
         {

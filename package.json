@@ -18,7 +18,7 @@
         {
           "id": "enpractice",
           "title": "EnPractice",
-          "icon": "./media/practice.png"
+          "icon": "./media/en.svg"
         }
       ]
     },
@@ -41,11 +41,11 @@
       {
         "command": "enpractice.openAnalytics",
         "title": "Records",
-        "icon": "./media/record.png"
+        "icon": "$(history)"
       },
       {
         "command": "enpractice.openDataAnalysis",
-        "title": "Data Analysis",
+        "title": "Analysis",
         "icon": "$(graph)"
       }
     ],

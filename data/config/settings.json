@@ -1,11 +1,11 @@
 {
   "currentWordbook": "nce1",
   "wordsPerChapter": 10,
-  "practiceMode": "normal",
+  "practiceMode": "dictation",
   "showPhonetics": true,
   "autoNextWord": false,
   "chapterLoop": true,
   "lastUpdated": "2025-08-27",
   "currentChapter": 1,
-  "currentWordIndex": 8
+  "currentWordIndex": 5
 }

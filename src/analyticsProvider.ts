@@ -22,8 +22,8 @@ export class AnalyticsProvider {
         }
 
         this.panel = vscode.window.createWebviewPanel(
-            'enpractice.analytics',
-            'Records',
+            'enpractice.records',
+            'English Practice Records',
             vscode.ViewColumn.One,
             {
                 enableScripts: true,
@@ -31,10 +31,8 @@ export class AnalyticsProvider {
             }
         );
 
-        this.panel.iconPath = {
-            light: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'record.svg')),
-            dark: vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'record.svg'))
-        };
+        // 移除自定义图标，使用默认图标
+        // this.panel.iconPath = new vscode.ThemeIcon('graph');
 
         this.panel.webview.html = this.getWebviewContent();
 
@@ -458,7 +456,7 @@ export class AnalyticsProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Records</title>
+    <title>English Practice Records</title>
     <style>
         body {
             font-family: var(--vscode-font-family);
