@@ -3,7 +3,13 @@
   "displayName": "EnPractice",
   "description": "English Practice Extension for VS Code",
   "version": "0.0.1",
-  "publisher": "your-publisher-name",
+  "publisher": "enpractice",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enpractice/enpractice.git"
+  },
+  "keywords": ["english", "practice", "vocabulary", "learning"],
+  "license": "MIT",
   "engines": {
     "vscode": "^1.74.0"
   },
