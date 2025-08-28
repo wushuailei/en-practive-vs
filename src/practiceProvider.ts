@@ -371,14 +371,15 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 }
                 
                 this.updateWebview();
-                vscode.window.showInformationMessage(`第 ${this.settings.currentChapter} 章循环重新开始`);
+                // 移除章节循环重新开始的长时间提示
             } else {
                 // 非循环模式：检查是否有下一章
                 const chapterInfo = this.getChapterInfo();
                 if (this.settings.currentChapter < chapterInfo.totalChapters) {
                     await this.switchChapter(this.settings.currentChapter + 1);
-                    vscode.window.showInformationMessage(`第 ${this.settings.currentChapter - 1} 章已完成，进入第 ${this.settings.currentChapter} 章`);
+                    // 移除章节完成的长时间提示
                 } else {
+                    // 保留所有章节完成的提示，但这种情况较少发生
                     vscode.window.showInformationMessage('所有章节已完成！');
                 }
             }
