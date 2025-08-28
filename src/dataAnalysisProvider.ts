@@ -73,7 +73,6 @@ export class DataAnalysisProvider {
                 dates: dates
             });
 
-            console.log('📅 发送日期列表:', dates);
         } catch (error) {
             console.error('发送日期列表失败:', error);
         }
@@ -98,7 +97,6 @@ export class DataAnalysisProvider {
                 data: data
             });
 
-            console.log(`📊 发送日期数据: ${date}`, data ? '有数据' : '无数据');
         } catch (error) {
             console.error(`发送日期数据失败: ${date}`, error);
         }

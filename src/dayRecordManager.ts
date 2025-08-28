@@ -37,7 +37,6 @@ export class DayRecordManager {
         try {
             // 检查文件是否存在
             await vscode.workspace.fs.stat(recordPath);
-            console.log(`📅 每日记录文件已存在: ${currentDate}${practiceMode === 'normal' ? '' : `_${practiceMode}`}.json`);
         } catch (error) {
             // 文件不存在，创建空文件
             const emptyRecord: DayRecord = {
@@ -47,7 +46,6 @@ export class DayRecordManager {
             
             const content = JSON.stringify(emptyRecord, null, 2);
             await vscode.workspace.fs.writeFile(recordPath, Buffer.from(content, 'utf8'));
-            console.log(`📅 创建每日记录文件: ${currentDate}${practiceMode === 'normal' ? '' : `_${practiceMode}`}.json`);
             
             // 更新总记录
             await this.updateTotalRecords(currentDate);
@@ -82,7 +80,6 @@ export class DayRecordManager {
             // 保存更新后的总记录
             const content = JSON.stringify(totalRecords, null, 2);
             await vscode.workspace.fs.writeFile(totalRecordPath, Buffer.from(content, 'utf8'));
-            console.log(`📅 更新总记录文件: ${date}`);
         }
     }
 
@@ -131,7 +128,6 @@ export class DayRecordManager {
             // 检查单词是否已记录（避免重复记录）
             if (!chapterRecord.words.includes(word)) {
                 chapterRecord.words.push(word);
-                console.log(`📅 记录单词练习: ${dictName} - 第${chapterNumber}章 - ${word} (${practiceMode}模式)`);
                 
                 // 保存更新后的记录
                 const content = JSON.stringify(dayRecord, null, 2);
@@ -198,7 +194,6 @@ export class DayRecordManager {
             // 保存更新后的总记录
             const content = JSON.stringify(totalRecords, null, 2);
             await vscode.workspace.fs.writeFile(totalRecordPath, Buffer.from(content, 'utf8'));
-            console.log(`📅 更新分析文件生成状态: ${date} - ${generated}`);
         }
     }
 }

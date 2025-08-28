@@ -59,9 +59,6 @@ export function activate(context: vscode.ExtensionContext) {
             const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
             const newCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
             
-            console.log('修复前章节完成次数:', chapterRecord.chapterCompletionCount);
-            console.log('所有单词正确次数:', correctCounts);
-            console.log('修复后章节完成次数:', newCompletionCount);
             
             chapterRecord.chapterCompletionCount = newCompletionCount;
             chapterRecord.lastPracticeTime = new Date().toISOString();

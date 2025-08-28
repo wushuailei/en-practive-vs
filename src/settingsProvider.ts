@@ -23,8 +23,6 @@ export function showSettingsPanel(context: vscode.ExtensionContext, practiceProv
         try {
             currentWordBooks = await getStoredWordBooks(context);
             const settings = await getSettings(context);
-            console.log('获取到词书数据:', currentWordBooks);
-            console.log('获取到设置数据:', settings);
             panel.webview.html = getSettingsWebviewContentWithData(currentWordBooks, settings);
         } catch (error) {
             console.error('获取数据失败:', error);
@@ -39,21 +37,17 @@ export function showSettingsPanel(context: vscode.ExtensionContext, practiceProv
     // 监听来自 webview 的消息
     panel.webview.onDidReceiveMessage(
         async message => {
-            console.log('设置页面收到消息:', message.command);
             switch (message.command) {
                 case 'refreshWordBooks':
-                    console.log('刷新词书列表...');
                     await updateWebviewContent();
                     break;
                 case 'switchWordBook':
-                    console.log('切换词书:', message.bookId);
                     await practiceProvider.switchStoredWordBook(context, message.bookId);
                     vscode.window.showInformationMessage(`已切换词书`);
                     // 刷新设置页面以显示最新状态
                     await updateWebviewContent();
                     break;
                 case 'updateChapterLoop':
-                    console.log('更新单章循环设置:', message.chapterLoop);
                     await updateSetting(context, 'chapterLoop', message.chapterLoop);
                     // 同步更新练习提供者的设置
                     await practiceProvider.updateChapterLoopSetting(message.chapterLoop);
@@ -62,7 +56,6 @@ export function showSettingsPanel(context: vscode.ExtensionContext, practiceProv
                     await updateWebviewContent();
                     break;
                 case 'updatePracticeMode':
-                    console.log('更新练习模式:', message.practiceMode);
                     await updateSetting(context, 'practiceMode', message.practiceMode);
                     // 同步更新练习提供者的设置
                     await practiceProvider.updatePracticeMode(message.practiceMode);

@@ -67,7 +67,6 @@ export class DayAnalysisManager {
     // 生成指定日期的分析报告
     async generateAnalysis(date: string, dayRecordManager: any): Promise<void> {
         try {
-            console.log(`开始生成 ${date} 的分析报告`);
 
             // 读取两种模式的记录
             const normalRecord = await this.readDayRecord(date, 'normal');
@@ -156,7 +155,6 @@ export class DayAnalysisManager {
             const content = JSON.stringify(analysisData, null, 2);
             await vscode.workspace.fs.writeFile(analysisPath, Buffer.from(content, 'utf8'));
             
-            console.log(`分析报告已生成: ${date}_analysis.json`);
             
             // 更新总记录状态
             await dayRecordManager.setAnalysisGenerated(date, true);
@@ -202,7 +200,6 @@ export class DayAnalysisManager {
         for (const record of sortedRecords) {
             // 只处理今天之前的日期，并且analysisGenerated为false的记录
             if (record.date < today && !record.analysisGenerated) {
-                console.log(`发现未生成分析报告的日期: ${record.date}`);
                 await this.generateAnalysis(record.date, dayRecordManager);
                 break; // 只处理最新的一个
             }

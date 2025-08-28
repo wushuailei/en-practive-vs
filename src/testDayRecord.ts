@@ -16,7 +16,6 @@ export async function testDayRecord(context: vscode.ExtensionContext) {
         
         // 获取并显示当天记录
         const record = await dayRecordManager.getCurrentDayRecord();
-        console.log('当前日期记录:', JSON.stringify(record, null, 2));
         
         vscode.window.showInformationMessage('每日记录测试完成，请查看开发者工具控制台');
     } catch (error) {

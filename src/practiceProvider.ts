@@ -27,13 +27,9 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         try {
             // 首先读取设置文件，获取当前词书配置
             this.settings = await getSettings(this.context);
-            console.log('从设置中读取到当前词书:', this.settings.currentWordbook);
-            
             // 尝试从 wordbooks.json 读取词书列表
             try {
                 const wordBooksList = await getStoredWordBooks(this.context);
-                
-                console.log('加载词书列表:', wordBooksList);
                 
                 // 查找设置中指定的当前词书
                 let targetBook = wordBooksList.find((book: any) => book.id === this.settings.currentWordbook);
@@ -41,8 +37,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 // 如果找不到设置中的词书，则使用第一个可用的词书
                 if (!targetBook && wordBooksList.length > 0) {
                     targetBook = wordBooksList[0];
-                    console.log('设置中的词书不存在，使用第一个可用词书:', targetBook.name);
-                    
                     // 更新设置文件
                     await updateSetting(this.context, 'currentWordbook', targetBook.id);
                     this.settings.currentWordbook = targetBook.id;
@@ -68,16 +62,12 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                         this.settings.chapterLoop = this.currentDictRecord.chapterLoop;
                     }
                     
-                    console.log(`练习面板加载词书: ${targetBook.name}, 单词数量: ${this.wordsData.length}`);
-                    console.log(`使用分片记录管理器`);
-                    console.log(`恢复进度: 第${this.settings.currentChapter}章, 第${this.settings.currentWordIndex + 1}个单词`);
                     return;
                 }
             } catch (listError) {
-                console.log('无法读取wordbooks.json，使用默认词书:', listError);
+                console.error('无法读取wordbooks.json，使用默认词书:', listError);
             }
             
-            console.log('没有找到可用的词书，使用默认数据');
             this.useDefaultWords();
         } catch (error) {
             console.error('加载词书失败:', error);
@@ -87,7 +77,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
 
     private useDefaultWords() {
         this.wordsData = defaultWordsData;
-        console.log('已加载默认词书，单词数量:', this.wordsData.length);
     }
 
     public async switchStoredWordBook(context: vscode.ExtensionContext, bookId: string) {
@@ -127,8 +116,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     });
                 }
                 
-                console.log(`练习面板已切换到词书: ${targetBook.name}, 单词数量: ${this.wordsData.length}`);
-                console.log(`进度: 第${this.settings.currentChapter}章, 第${this.settings.currentWordIndex + 1}个单词`);
                 vscode.window.showInformationMessage(`已切换到词书: ${targetBook.name}`);
             } else {
                 vscode.window.showErrorMessage(`词书不存在: ${bookId}`);
@@ -197,7 +184,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
 
     // 添加刷新词书数据的方法
     public async refreshWordBooks() {
-        console.log('练习面板刷新词书数据...');
         await this.loadWordsData();
         if (this._view) {
             this._view.webview.postMessage({
@@ -235,7 +221,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             async message => {
                 switch (message.command) {
                     case 'inputChange':
-                        console.log('输入内容:', message.text);
                         break;
                     case 'wordPracticeResult':
                         // 记录单词练习结果
@@ -259,10 +244,8 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
     // 新增初始化方法
     private async initializeWordsData(): Promise<void> {
         if (!this.isInitialized) {
-            console.log('练习面板初始化，加载设置和词书...');
             await this.loadWordsData();
             this.isInitialized = true;
-            console.log('初始化完成，当前模式:', this.settings.practiceMode);
         }
     }
 
@@ -291,7 +274,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
         const endIndex = Math.min(startIndex + chapterInfo.wordsPerChapter, this.wordsData.length);
         
         this.currentChapterWords = this.wordsData.slice(startIndex, endIndex);
-        console.log(`📚 顺序模式 - 章节 ${chapterInfo.currentChapter} 获取到 ${this.currentChapterWords.length} 个单词`);
         return this.currentChapterWords;
     }
 
@@ -309,13 +291,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             const currentWord = this.getCurrentWord();
             const chapterWords = this.getCurrentChapterWords();
             
-            console.log('updateWebview 调试信息:');
-            console.log('- wordsData.length:', this.wordsData.length);
-            console.log('- chapterInfo:', chapterInfo);
-            console.log('- currentWord:', currentWord);
-            console.log('- chapterWords.length:', chapterWords.length);
-            console.log('- settings:', this.settings);
-            
             this._view.webview.postMessage({
                 command: 'updateDisplay',
                 data: {
@@ -327,8 +302,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     settings: this.settings
                 }
             });
-        } else {
-            console.log('updateWebview: _view 为空，无法更新');
         }
     }
 
@@ -347,7 +320,6 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
             }
             
             this.updateWebview();
-            console.log(`切换到第 ${chapterNumber} 章`);
         }
     }
 

@@ -35,20 +35,15 @@ export class ShardedRecordManager {
             
             // 数据一致性检查和更新
             if (record.totalWords !== totalWords) {
-                console.log(`📊 数据一致性检查: ${dictName} (${practiceMode}模式) 单词数从 ${record.totalWords} 更新为 ${totalWords}`);
                 record.totalWords = totalWords;
                 record.totalChapters = Math.ceil(totalWords / FIXED_WORDS_PER_CHAPTER);
                 await this.saveMainRecord(record);
             }
             
-            console.log(`✅ 加载词典记录: ${dictName} (${dictId}) - ${practiceMode}模式`);
-            
             return record;
         } catch (error) {
-            console.log(`🆕 词典记录不存在，自动创建: ${dictName} (${dictId}) - ${practiceMode}模式`);
             const newRecord = createDefaultDictRecord(dictId, dictName, totalWords, practiceMode);
             await this.saveMainRecord(newRecord);
-            console.log(`✅ 词典记录创建完成: ${dictName} - ${totalWords}个单词，${newRecord.totalChapters}个章节 - ${practiceMode}模式`);
             return newRecord;
         }
     }
@@ -74,7 +69,6 @@ export class ShardedRecordManager {
             return JSON.parse(content) as ChapterRecord;
         } catch (error) {
             // 创建默认章节记录
-            console.log(`🆕 创建章节记录: ${dictId} - 第${chapterNumber}章 - ${practiceMode}模式`);
             const defaultChapter: ChapterRecord = {
                 chapterNumber,
                 totalWordsInChapter: 10,
@@ -209,7 +203,6 @@ export class ShardedRecordManager {
     async generateSequentialOrder(dictId: string, totalWords: number): Promise<number[]> {
         try {
             const sequentialOrder = Array.from({ length: totalWords }, (_, i) => i);
-            console.log(`📚 生成顺序排序，单词数: ${totalWords}`);
             return sequentialOrder;
         } catch (error) {
             console.error('生成顺序排序失败:', error);

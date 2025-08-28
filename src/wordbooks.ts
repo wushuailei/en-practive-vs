@@ -6,14 +6,9 @@ export async function getStoredWordBooks(context: vscode.ExtensionContext): Prom
     try {
         // 从 data/wordbooks.json 读取词书列表
         const wordBooksListPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'config', 'wordbooks.json');
-        console.log('尝试读取词书列表文件:', wordBooksListPath.fsPath);
-        
         const fileData = await vscode.workspace.fs.readFile(wordBooksListPath);
         const content = Buffer.from(fileData).toString('utf8');
-        console.log('成功读取文件，内容长度:', content.length);
-        
         const wordBooksList = JSON.parse(content);
-        console.log('从wordbooks.json读取到的数据:', wordBooksList);
         
         // 验证每个词书文件是否存在
         const validWordBooks = [];
@@ -25,19 +20,17 @@ export async function getStoredWordBooks(context: vscode.ExtensionContext): Prom
                     const bookPath = vscode.Uri.joinPath(context.extensionUri, 'data', 'dicts', filename);
                     await vscode.workspace.fs.stat(bookPath); // 检查文件是否存在
                     validWordBooks.push(book);
-                    console.log(`词书文件存在: ${filename}`);
                 } else {
                     console.log('词书配置缺少文件名:', book);
                 }
             } catch {
-                console.log(`词书文件不存在: ${book.url || book.filename}`);
+                // 文件不存在，跳过
             }
         }
         
-        console.log('有效的词书列表:', validWordBooks);
         return validWordBooks;
     } catch (error) {
-        console.log('读取词书列表失败:', error);
+        console.error('读取词书列表失败:', error);
         return [];
     }
 }
@@ -57,12 +50,10 @@ export async function loadWordBookData(
                 const bookData = await vscode.workspace.fs.readFile(bookPath);
                 const bookContent = Buffer.from(bookData).toString('utf8');
                 const wordsData = JSON.parse(bookContent) as WordData[];
-                console.log(`加载词书成功: ${targetBook.name}, 单词数量: ${wordsData.length}`);
                 return wordsData;
             }
         }
         
-        console.log('未找到指定词书，使用默认数据');
         return defaultWordsData;
     } catch (error) {
         console.error('加载词书数据失败:', error);
