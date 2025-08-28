@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 import { DayRecordManager } from './dayRecordManager';
 
 export class DataAnalysisProvider {
@@ -79,14 +77,9 @@ export class DataAnalysisProvider {
         if (!this.panel) return;
 
         try {
-            const snapshotDir = path.join(this.context.extensionPath, 'data', 'userdata', 'snapshots');
-            const snapshotPath = path.join(snapshotDir, `${date}.json`);
-
-            let data = null;
-            if (fs.existsSync(snapshotPath)) {
-                const content = fs.readFileSync(snapshotPath, 'utf-8');
-                data = JSON.parse(content);
-            }
+            // 从 globalState 获取快照数据
+            const snapshotKey = `enpractice.snapshots.${date}`;
+            const data = this.context.globalState.get<any>(snapshotKey);
 
             this.panel.webview.postMessage({
                 type: 'dateData',
@@ -102,12 +95,6 @@ export class DataAnalysisProvider {
     private async generateTodayData() {
         try {
             const today = new Date().toISOString().split('T')[0];
-            
-            // 创建快照数据文件夹
-            const snapshotDir = path.join(this.context.extensionPath, 'data', 'userdata', 'snapshots');
-            if (!fs.existsSync(snapshotDir)) {
-                fs.mkdirSync(snapshotDir, { recursive: true });
-            }
             
             // 获取当日记录数据
             const normalRecord = await this.dayRecordManager.getDayRecord(today, 'normal');
@@ -197,9 +184,9 @@ export class DataAnalysisProvider {
             // 计算总单词数
             snapshot.totalStats.totalWordsAll = snapshot.totalStats.totalWordsNormal + snapshot.totalStats.totalWordsDictation;
 
-            // 保存快照文件
-            const snapshotPath = path.join(snapshotDir, `${today}.json`);
-            fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+            // 保存快照数据到 globalState
+            const snapshotKey = `enpractice.snapshots.${today}`;
+            await this.context.globalState.update(snapshotKey, snapshot);
 
             // 刷新数据显示
             await this.sendDateList();

@@ -61,7 +61,6 @@ EnPractice/
 ├── 📄 README.md              # 项目基础介绍和使用说明
 ├── 📄 PROJECT_DESIGN.md      # 本文档，详细设计说明
 ├── 📄 PERFORMANCE.md         # 性能优化和架构分析
-├── 📄 TESTING_REPORT.md      # 功能测试报告
 ├── 📄 package.json           # 插件配置和依赖管理
 ├── 📄 tsconfig.json          # TypeScript编译配置
 ├── 📄 .gitignore            # Git忽略文件配置
@@ -74,31 +73,20 @@ EnPractice/
 src/
 ├── 📄 extension.ts           # 插件主入口文件
 ├── 📄 types.ts              # TypeScript类型定义
-├── 📄 settings.ts           # 全局设置管理
+├── 📄 settings.ts           # 全局设置管理（使用globalState）
 ├── 📄 wordbooks.ts          # 词书文件管理
 ├── 📄 practiceProvider.ts   # 练习界面提供者
 ├── 📄 settingsProvider.ts   # 设置界面提供者
 ├── 📄 analyticsProvider.ts  # 记录界面提供者
-├── 📄 dayRecordManager.ts   # 每日记录管理器
-├── 📄 dayAnalysisManager.ts # 每日分析管理器
-└── 📄 shardedRecordManager.ts # 分片记录管理器
+├── 📄 dayRecordManager.ts   # 每日记录管理器（使用globalState）
+├── 📄 dayAnalysisManager.ts # 每日分析管理器（使用globalState）
+└── 📄 shardedRecordManager.ts # 分片记录管理器（使用globalState）
 ```
 
 ### 数据存储目录 (/data)
 ```
 data/
 ├── 📄 README.md             # 数据文件使用说明
-├── 📁 userdata/             # 用户数据存储
-│   ├── 📄 settings.json         # 用户设置持久化
-│   ├── 📁 records/             # 练习记录存储
-│   │   ├── 📄 {dictId}_main.json    # 主记录文件
-│   │   └── 📄 {dictId}_ch{N}.json   # 章节记录文件
-│   ├── 📁 dayRecords/          # 每日记录存储
-│   │   ├── 📄 {date}.json           # 正常模式每日记录
-│   │   ├── 📄 {date}_dictation.json # 默写模式每日记录
-│   │   └── 📄 totalRecords.json     # 总记录文件
-│   └── 📁 dayRecordsAnalyze/   # 每日分析报告存储
-│       └── 📄 {date}_analysis.json  # 每日分析报告
 ├── 📁 config/               # 配置文件
 │   └── 📄 wordbooks.json        # 词书列表配置
 └── 📁 dicts/               # 词典文件存储
@@ -130,13 +118,13 @@ media/
 
 ### 1. 插件主入口 (extension.ts)
 **职责**：插件生命周期管理和依赖注入
-```typescript
+``typescript
 // 核心功能
 - 插件激活和注销
 - 命令注册
 - 视图容器初始化
 - 全局状态管理
-- 每日记录文件初始化
+- 每日记录数据初始化
 - 分析报告生成检查
 ```
 
@@ -147,7 +135,7 @@ media/
 
 ### 2. 类型系统 (types.ts)
 **职责**：全局类型定义和数据结构设计
-```typescript
+``typescript
 // 核心数据结构
 interface PluginSettings        # 插件设置
 interface WordData             # 单词数据
@@ -165,18 +153,18 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 3. 设置管理 (settings.ts)
 **职责**：用户配置的读取、写入和验证
-```typescript
+``typescript
 // 核心功能
-- 设置文件持久化
+- 设置数据持久化（使用globalState）
 - 配置验证和默认值
 - 设置更新通知
 ```
 
-**存储策略**：文件系统 + 内存缓存
+**存储策略**：VS Code globalState API
 
 ### 4. 词书管理 (wordbooks.ts)
 **职责**：词典文件的加载、验证和管理
-```typescript
+``typescript
 // 核心功能
 - 词书列表读取
 - 词典文件加载
@@ -189,7 +177,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 5. 练习提供者 (practiceProvider.ts)
 **职责**：核心练习功能的实现和界面管理
-```typescript
+``typescript
 // 核心功能
 - Webview界面管理
 - 练习逻辑控制
@@ -204,7 +192,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 6. 设置提供者 (settingsProvider.ts)
 **职责**：设置界面和配置管理
-```typescript
+``typescript
 // 核心功能
 - 设置界面渲染
 - 配置项管理
@@ -216,7 +204,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 7. 记录提供者 (analyticsProvider.ts)
 **职责**：记录界面和报告展示
-```typescript
+``typescript
 // 核心功能
 - 记录界面渲染
 - 统计数据展示
@@ -226,22 +214,22 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 8. 每日记录管理器 (dayRecordManager.ts)
 **职责**：每日练习记录的管理和存储
-```typescript
+``typescript
 // 核心功能
-- 每日记录文件创建和管理
+- 每日记录数据创建和管理（使用globalState）
 - 单词练习记录（去重）
 - 按练习模式区分记录
 - 总记录维护
 - 分析状态管理
 ```
 
-**存储策略**：按日期和模式分文件存储
+**存储策略**：VS Code globalState API
 
 ### 9. 每日分析管理器 (dayAnalysisManager.ts)
 **职责**：每日练习数据的分析和报告生成
-```typescript
+``typescript
 // 核心功能
-- 每日分析报告生成
+- 每日分析报告生成（使用globalState）
 - 多模式数据整合
 - 词典详细信息获取
 - 分析状态更新
@@ -250,15 +238,15 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 10. 分片记录管理器 (shardedRecordManager.ts)
 **职责**：高性能的练习数据存储和管理
-```typescript
+``typescript
 // 核心功能
-- 分片存储策略
+- 分片存储策略（使用globalState）
 - 按需加载机制
 - 数据一致性保证
 - 统计数据计算
 ```
 
-**存储架构**：主文件 + 章节分片
+**存储架构**：globalState键值存储
 **性能优化**：内存占用减少550倍
 
 ---
@@ -451,7 +439,7 @@ graph TD
 
 ## 📊 数据存储设计
 
-### 1. 设置数据 (userdata/settings.json)
+### 1. 设置数据 (使用globalState存储)
 ```json
 {
   "currentWordbook": "nce1",
@@ -496,7 +484,7 @@ graph TD
 ]
 ```
 
-### 4. 练习记录结构
+### 4. 练习记录结构 (使用globalState存储)
 ```json
 {
   "dictId": "nce1",
@@ -516,7 +504,7 @@ graph TD
 }
 ```
 
-### 5. 每日记录结构 (userdata/dayRecords/{date}.json)
+### 5. 每日记录结构 (使用globalState存储)
 ```json
 {
   "date": "2025-08-26",
@@ -539,7 +527,7 @@ graph TD
 }
 ```
 
-### 6. 总记录结构 (userdata/dayRecords/totalRecords.json)
+### 6. 总记录结构 (使用globalState存储)
 ```json
 [
   {
@@ -553,7 +541,7 @@ graph TD
 ]
 ```
 
-### 7. 分析报告结构 (userdata/dayRecordsAnalyze/{date}_analysis.json)
+### 7. 分析报告结构 (使用globalState存储)
 ```json
 {
   "date": "2025-08-26",
@@ -620,9 +608,10 @@ graph TD
 - **懒加载**：按需加载词书和记录数据
 - **对象池**：复用频繁创建的对象
 - **垃圾回收**：及时释放不用的引用
+- **全局状态存储**：使用VS Code的globalState API，避免文件系统I/O操作
 
 ### 2. I/O优化
-- **异步操作**：所有文件操作异步化
+- **无文件I/O**：完全使用globalState存储，避免文件系统读写
 - **批量写入**：合并多个小的写操作
 - **写入缓冲**：延迟非关键数据的写入
 - **读取缓存**：热点数据内存缓存
@@ -637,13 +626,14 @@ graph TD
 - **渐进加载**：数据分批加载避免阻塞
 - **错误恢复**：自动处理异常情况
 - **状态保持**：保持用户的操作状态
+- **即时响应**：globalState操作响应速度极快
 
 ---
 
 ## 🔒 错误处理与容错设计
 
 ### 1. 数据完整性保护
-```typescript
+``typescript
 // 数据一致性检查
 if (record.totalWords !== actualWords) {
     console.log('数据不一致，自动修复');
@@ -654,7 +644,7 @@ if (record.totalWords !== actualWords) {
 ```
 
 ### 2. 优雅降级策略
-```typescript
+``typescript
 // 数据加载失败降级处理
 try {
     return await this.loadChapterData();
@@ -736,12 +726,14 @@ F5 (在VS Code中)
 - **类型优先**：TypeScript严格模式
 - **注释规范**：JSDoc格式文档注释
 - **命名约定**：驼峰命名法和语义化命名
+- **数据存储**：使用VS Code globalState API替代文件系统存储
 
 ### 3. 代码质量保证
 - **类型检查**：TypeScript编译时类型验证
 - **代码审查**：关键变更需要代码审查
 - **测试覆盖**：核心功能测试覆盖率>80%
 - **性能监控**：关键操作性能指标监控
+- **数据持久化**：使用globalState确保数据可靠存储
 
 ---
 
@@ -751,6 +743,7 @@ F5 (在VS Code中)
 - **TypeScript 4.9.4**：类型安全的JavaScript超集
 - **VS Code Extension API**：VS Code插件开发框架
 - **Node.js 16.x**：JavaScript运行时环境
+- **GlobalState API**：VS Code提供的数据持久化机制
 
 ### 开发工具
 - **TSC**：TypeScript编译器
@@ -762,6 +755,7 @@ F5 (在VS Code中)
 - **MVP模式**：Model-View-Presenter分离
 - **模块化设计**：功能模块独立可测试
 - **事件驱动**：异步消息传递机制
+- **全局状态管理**：使用VS Code globalState进行数据持久化
 
 ---
 

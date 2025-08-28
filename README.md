@@ -80,21 +80,18 @@ EnPractice 是一个专为程序员设计的VS Code英语学习插件，将英�
 data/
 ├── config/                # 配置文件存储
 │   └── wordbooks.json         # 词典列表信息
-├── dicts/                 # 词典文件存储
-│   ├── hongbaoshu-2026.json
-│   └── NCE_*.json
-└── userdata/              # 用户数据存储
-    ├── settings.json           # 用户设置配置
-    ├── records/               # 练习记录存储
-    │   ├── {dictId}_main.json      # 主记录文件
-    │   └── {dictId}_ch{N}.json     # 章节记录文件
-    ├── dayRecords/            # 每日记录存储
-    │   ├── {date}.json             # 正常模式每日记录
-    │   ├── {date}_dictation.json   # 默写模式每日记录
-    │   └── totalRecords.json       # 总记录索引
-    └── dayRecordsAnalyze/     # 每日分析报告
-        └── {date}_analysis.json    # 分析报告文件
+└── dicts/                 # 词典文件存储
+    ├── hongbaoshu-2026.json
+    └── NCE_*.json
 ```
+
+### 数据存储架构
+项目采用VS Code的`globalState` API进行数据持久化存储：
+
+- **设置数据**：存储在`globalState`的`enpractice.settings`键下
+- **练习记录**：按词典和章节分片存储在`globalState`中
+- **每日记录**：按日期存储在`globalState`中
+- **分析报告**：存储在`globalState`中
 
 ### 分片存储系统
 项目采用创新的分片存储架构，将练习记录分为：
@@ -112,17 +109,17 @@ data/
 
 ### 1. 初始化流程
 ```
-插件激活 → 创建数据目录 → 加载设置文件 → 初始化词典列表 → 创建当日记录文件
+插件激活 → 加载设置数据 → 初始化词典列表 → 创建当日记录数据
 ```
 
 ### 2. 练习数据生成
 ```
-用户练习 → 实时记录输入 → 更新单词记录 → 计算章节统计 → 更新每日记录 → 保存到文件
+用户练习 → 实时记录输入 → 更新单词记录 → 计算章节统计 → 更新每日记录 → 保存到globalState
 ```
 
 ### 3. 分析报告生成
 ```
-检查缺失报告 → 读取每日记录 → 整合多模式数据 → 计算统计指标 → 生成分析报告 → 保存分析文件
+检查缺失报告 → 读取每日记录 → 整合多模式数据 → 计算统计指标 → 生成分析报告 → 保存分析数据
 ```
 
 ### 4. 数据同步机制
@@ -143,6 +140,7 @@ data/
 2. **异步处理**：所有I/O操作异步化，不阻塞用户操作
 3. **智能缓存**：热点数据内存缓存，减少文件读取
 4. **增量计算**：只计算变化的统计数据，提升计算效率
+5. **全局状态存储**：使用VS Code的globalState API，提供更可靠的数据持久化
 
 ## 🛠️ 技术架构
 
@@ -151,6 +149,7 @@ data/
 - **VS Code Extension API**：原生插件架构
 - **Node.js 16.x**：JavaScript运行时环境
 - **分片存储系统**：自研高性能数据管理方案
+- **GlobalState API**：VS Code提供的数据持久化机制
 
 ### 架构设计模式
 - **模块化设计**：功能模块独立，职责清晰
@@ -161,25 +160,25 @@ data/
 ### 核心模块说明
 - **extension.ts**：插件主入口，负责生命周期管理
 - **practiceProvider.ts**：练习界面和核心练习逻辑
-- **shardedRecordManager.ts**：分片存储管理器
-- **dayRecordManager.ts**：每日记录管理器
-- **dayAnalysisManager.ts**：数据分析管理器
-- **settingsProvider.ts**：设置界面和配置管理
+- **shardedRecordManager.ts**：分片存储管理器（使用globalState）
+- **dayRecordManager.ts**：每日记录管理器（使用globalState）
+- **dayAnalysisManager.ts**：数据分析管理器（使用globalState）
+- **settingsProvider.ts**：设置界面和配置管理（使用globalState）
 
 ### 项目结构
 ```
 src/
 ├── extension.ts           # 插件主入口
 ├── types.ts              # 类型定义
-├── settings.ts           # 设置管理
+├── settings.ts           # 设置管理（使用globalState）
 ├── wordbooks.ts          # 词书管理
 ├── practiceProvider.ts   # 练习界面
 ├── settingsProvider.ts   # 设置界面
 ├── analyticsProvider.ts  # 记录界面
 ├── dataAnalysisProvider.ts # 数据分析界面
-├── dayRecordManager.ts   # 每日记录管理
-├── dayAnalysisManager.ts # 每日分析管理
-└── shardedRecordManager.ts # 分片记录管理
+├── dayRecordManager.ts   # 每日记录管理（使用globalState）
+├── dayAnalysisManager.ts # 每日分析管理（使用globalState）
+└── shardedRecordManager.ts # 分片记录管理（使用globalState）
 ```
 
 ## 📊 数据统计功能
