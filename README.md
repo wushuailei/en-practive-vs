@@ -79,12 +79,12 @@ EnPractice 是一个专为程序员设计的VS Code英语学习插件，将英�
 ```
 data/
 ├── config/                # 配置文件存储
-│   ├── settings.json           # 用户设置配置
 │   └── wordbooks.json         # 词典列表信息
 ├── dicts/                 # 词典文件存储
 │   ├── hongbaoshu-2026.json
 │   └── NCE_*.json
 └── userdata/              # 用户数据存储
+    ├── settings.json           # 用户设置配置
     ├── records/               # 练习记录存储
     │   ├── {dictId}_main.json      # 主记录文件
     │   └── {dictId}_ch{N}.json     # 章节记录文件

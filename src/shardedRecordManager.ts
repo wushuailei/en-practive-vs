@@ -68,8 +68,8 @@ export class ShardedRecordManager {
             const content = Buffer.from(fileData).toString('utf8');
             return JSON.parse(content) as ChapterRecord;
         } catch (error) {
-            // 创建默认章节记录
-            const defaultChapter: ChapterRecord = {
+            // 返回默认章节记录，但不立即创建文件
+            return {
                 chapterNumber,
                 totalWordsInChapter: 10,
                 completedWordsCount: 0,
@@ -77,8 +77,6 @@ export class ShardedRecordManager {
                 lastPracticeTime: new Date().toISOString(),
                 wordRecords: {}
             };
-            await this.saveChapterRecord(dictId, defaultChapter, practiceMode);
-            return defaultChapter;
         }
     }
 
@@ -122,7 +120,10 @@ export class ShardedRecordManager {
     ): Promise<void> {
         try {
             // 加载章节记录
-            const chapterRecord = await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
+            let chapterRecord = await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
+            
+            // 检查是否是默认记录（没有实际练习数据）
+            const isEmptyRecord = Object.keys(chapterRecord.wordRecords).length === 0;
             
             // 确保单词记录存在
             if (!chapterRecord.wordRecords[word]) {
@@ -160,8 +161,10 @@ export class ShardedRecordManager {
             
             chapterRecord.lastPracticeTime = new Date().toISOString();
 
-            // 保存章节记录
-            await this.saveChapterRecord(dictId, chapterRecord, practiceMode);
+            // 保存章节记录（只有在有实际练习数据时才保存）
+            if (!isEmptyRecord || Object.keys(chapterRecord.wordRecords).length > 0) {
+                await this.saveChapterRecord(dictId, chapterRecord, practiceMode);
+            }
             
             // 记录每日练习（每天每个单词只记录一次）
             if (dictName) {
@@ -176,12 +179,16 @@ export class ShardedRecordManager {
     async recordChapterCompletion(dictId: string, chapterNumber: number, practiceMode: PracticeMode = 'normal'): Promise<void> {
         try {
             const chapterRecord = await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
-            // 重新计算章节完成统计
-            const allWordRecords = Object.values(chapterRecord.wordRecords).filter((wr: any) => wr.practiceCount > 0);
-            const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
-            chapterRecord.chapterCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
-            chapterRecord.lastPracticeTime = new Date().toISOString();
-            await this.saveChapterRecord(dictId, chapterRecord, practiceMode);
+            
+            // 只有在章节记录包含实际数据时才保存
+            if (Object.keys(chapterRecord.wordRecords).length > 0) {
+                // 重新计算章节完成统计
+                const allWordRecords = Object.values(chapterRecord.wordRecords).filter((wr: any) => wr.practiceCount > 0);
+                const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
+                chapterRecord.chapterCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
+                chapterRecord.lastPracticeTime = new Date().toISOString();
+                await this.saveChapterRecord(dictId, chapterRecord, practiceMode);
+            }
         } catch (error) {
             console.error('记录章节完成失败:', error);
         }

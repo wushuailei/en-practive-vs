@@ -57,15 +57,19 @@ export class DataAnalysisProvider {
         if (!this.panel) return;
 
         try {
-            const snapshotDir = path.join(this.context.extensionPath, 'data', 'userdata', 'snapshots');
+            // 从 totalRecords.json 获取日期列表
+            const totalRecordPath = path.join(this.context.extensionPath, 'data', 'userdata', 'dayRecords', 'totalRecords.json');
+            
             let dates: string[] = [];
-
-            if (fs.existsSync(snapshotDir)) {
-                const files = fs.readdirSync(snapshotDir);
-                dates = files
-                    .filter(f => f.endsWith('.json'))
-                    .map(f => f.replace('.json', ''))
-                    .sort((a, b) => b.localeCompare(a)); // 降序排列，最新的在前
+            
+            if (fs.existsSync(totalRecordPath)) {
+                const content = fs.readFileSync(totalRecordPath, 'utf-8');
+                const totalRecords = JSON.parse(content);
+                
+                // 从 totalRecords 中提取日期并排序
+                dates = totalRecords
+                    .map((record: any) => record.date)
+                    .sort((a: string, b: string) => b.localeCompare(a)); // 降序排列，最新的在前
             }
 
             this.panel.webview.postMessage({

@@ -7,7 +7,6 @@
 ```
 data/
 ├── config/                 # 配置文件
-│   ├── settings.json           # 用户设置配置
 │   └── wordbooks.json         # 词典列表信息
 ├── dicts/                  # 词典文件
 │   ├── hongbaoshu-2026.json    # 红宝书2026词典
@@ -16,6 +15,7 @@ data/
 │   ├── NCE_3.json             # 新概念英语第3册
 │   └── NCE_4.json             # 新概念英语第4册
 └── userdata/               # 用户数据
+    ├── settings.json           # 用户设置配置
     ├── records/               # 练习记录（分片存储）
     │   ├── {dictId}_main.json      # 主记录文件
     │   └── {dictId}_ch{N}.json     # 章节记录文件
@@ -125,7 +125,7 @@ data/
 
 ### 故障排除
 - 删除 `userdata/records/` 目录可重置练习记录
-- 删除 `config/settings.json` 可重置设置
+- 删除 `userdata/settings.json` 可重置设置
 - 插件会自动修复损坏的数据文件
 
 ## ⚠️ 注意事项
