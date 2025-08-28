@@ -57,20 +57,13 @@ export class DataAnalysisProvider {
         if (!this.panel) return;
 
         try {
-            // 从 totalRecords.json 获取日期列表
-            const totalRecordPath = path.join(this.context.extensionPath, 'data', 'userdata', 'dayRecords', 'totalRecords.json');
+            // 从 globalState 获取日期列表
+            const totalRecords = await this.dayRecordManager.getTotalRecords();
             
-            let dates: string[] = [];
-            
-            if (fs.existsSync(totalRecordPath)) {
-                const content = fs.readFileSync(totalRecordPath, 'utf-8');
-                const totalRecords = JSON.parse(content);
-                
-                // 从 totalRecords 中提取日期并排序
-                dates = totalRecords
-                    .map((record: any) => record.date)
-                    .sort((a: string, b: string) => b.localeCompare(a)); // 降序排列，最新的在前
-            }
+            // 从 totalRecords 中提取日期并排序
+            const dates = totalRecords
+                .map((record: any) => record.date)
+                .sort((a: string, b: string) => b.localeCompare(a)); // 降序排列，最新的在前
 
             this.panel.webview.postMessage({
                 type: 'dateList',
@@ -200,8 +193,8 @@ export class DataAnalysisProvider {
                 snapshot.modes.dictation.totalWords = dictationWords.length;
                 snapshot.totalStats.totalWordsDictation = dictationWords.length;
             }
-
-            // 计算总计
+            
+            // 计算总单词数
             snapshot.totalStats.totalWordsAll = snapshot.totalStats.totalWordsNormal + snapshot.totalStats.totalWordsDictation;
 
             // 保存快照文件
@@ -223,20 +216,15 @@ export class DataAnalysisProvider {
     // 获取单词的练习记录
     private getWordPracticeRecord(dictId: string, chapter: number, word: string, mode: string): any {
         try {
-            const recordsDir = path.join(this.context.extensionPath, 'data', 'userdata', 'records');
-            const chapterFile = `${dictId}_${mode}_ch${chapter}.json`;
-            const chapterPath = path.join(recordsDir, chapterFile);
+            // 使用 globalState 获取记录
+            const recordKey = `enpractice.records.${dictId}.${mode}.ch${chapter}`;
+            const chapterRecord = this.context.globalState.get<any>(recordKey);
             
-            if (fs.existsSync(chapterPath)) {
-                const content = fs.readFileSync(chapterPath, 'utf-8');
-                const chapterData = JSON.parse(content);
-                
-                if (chapterData.wordRecords && chapterData.wordRecords[word]) {
-                    return chapterData.wordRecords[word];
-                }
+            if (chapterRecord && chapterRecord.wordRecords && chapterRecord.wordRecords[word]) {
+                return chapterRecord.wordRecords[word];
             }
             
-            // 返回默认记录
+            // 如果没有找到记录，返回默认值
             return {
                 word: word,
                 practiceCount: 0,
@@ -246,7 +234,7 @@ export class DataAnalysisProvider {
                 lastPracticeTime: '从未练习'
             };
         } catch (error) {
-            console.error(`获取单词练习记录失败: ${word}`, error);
+            console.error(`获取单词练习记录失败 (${dictId}, ${chapter}, ${word}):`, error);
             return {
                 word: word,
                 practiceCount: 0,
@@ -286,141 +274,148 @@ export class DataAnalysisProvider {
                 
                 .date-selector {
                     flex: 1;
-                    padding: 5px;
-                    background-color: var(--vscode-input-background);
-                    color: var(--vscode-input-foreground);
-                    border: 1px solid var(--vscode-input-border);
-                    border-radius: 3px;
                 }
                 
-                .generate-btn {
-                    padding: 5px 10px;
+                select {
+                    background-color: var(--vscode-dropdown-background);
+                    color: var(--vscode-dropdown-foreground);
+                    border: 1px solid var(--vscode-dropdown-border);
+                    padding: 4px 8px;
+                    border-radius: 2px;
+                    min-width: 120px;
+                }
+                
+                .button {
                     background-color: var(--vscode-button-background);
                     color: var(--vscode-button-foreground);
                     border: none;
-                    border-radius: 3px;
+                    padding: 4px 12px;
+                    border-radius: 2px;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 13px;
                 }
                 
-                .generate-btn:hover {
+                .button:hover {
                     background-color: var(--vscode-button-hoverBackground);
                 }
                 
-                .generate-btn:disabled {
+                .button:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
                 }
                 
-                .stats-overview {
-                    margin-bottom: 20px;
-                    padding: 15px;
-                    background-color: var(--vscode-editor-inactiveSelectionBackground);
-                    border-radius: 5px;
-                }
-                
-                .stats-grid {
+                .stats-container {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                    gap: 15px;
-                    margin-top: 10px;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 20px;
                 }
                 
-                .stat-item {
-                    text-align: center;
-                    padding: 10px;
-                    background-color: var(--vscode-input-background);
-                    border-radius: 3px;
+                .stat-card {
+                    background-color: var(--vscode-editor-widget-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
+                    padding: 15px;
+                }
+                
+                .stat-title {
+                    font-size: 14px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    color: var(--vscode-foreground);
                 }
                 
                 .stat-value {
                     font-size: 24px;
                     font-weight: bold;
-                    color: var(--vscode-textLink-foreground);
+                    color: var(--vscode-charts-green);
                 }
                 
-                .stat-label {
+                .stat-detail {
                     font-size: 12px;
                     color: var(--vscode-descriptionForeground);
                     margin-top: 5px;
                 }
                 
-                .modes-container {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                    margin-top: 20px;
-                }
-                
-                .mode-section {
-                    border: 1px solid var(--vscode-panel-border);
-                    border-radius: 5px;
+                .words-container {
+                    background-color: var(--vscode-editor-widget-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
                     padding: 15px;
                 }
                 
-                .mode-section h3 {
-                    margin: 0 0 15px 0;
-                    padding-bottom: 8px;
-                    border-bottom: 1px solid var(--vscode-panel-border);
-                }
-                
-                .filters-container {
-                    display: flex;
-                    gap: 10px;
-                    margin-bottom: 15px;
-                    flex-wrap: wrap;
-                }
-                
-                .filter-group {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
-                }
-                
-                .filter-label {
-                    font-size: 12px;
-                    color: var(--vscode-descriptionForeground);
-                }
-                
-                .filter-select {
-                    padding: 4px 8px;
-                    background-color: var(--vscode-input-background);
-                    color: var(--vscode-input-foreground);
-                    border: 1px solid var(--vscode-input-border);
-                    border-radius: 3px;
-                    font-size: 12px;
-                }
-                
-                .words-table {
-                    overflow-x: auto;
-                }
-                
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 12px;
-                }
-                
-                th, td {
-                    padding: 8px;
-                    text-align: left;
-                    border-bottom: 1px solid var(--vscode-panel-border);
-                }
-                
-                th {
-                    background-color: var(--vscode-editor-inactiveSelectionBackground);
+                .words-header {
+                    font-size: 14px;
                     font-weight: bold;
-                    position: sticky;
-                    top: 0;
+                    margin-bottom: 10px;
+                    color: var(--vscode-foreground);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .words-list {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 10px;
+                }
+                
+                .word-item {
+                    background-color: var(--vscode-input-background);
+                    border: 1px solid var(--vscode-input-border);
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 13px;
                 }
                 
                 .word-name {
                     font-weight: bold;
-                    color: var(--vscode-textLink-foreground);
+                    color: var(--vscode-foreground);
+                    margin-bottom: 4px;
                 }
                 
-                tr:hover {
-                    background-color: var(--vscode-list-hoverBackground);
+                .word-dict {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-bottom: 2px;
+                }
+                
+                .word-chapter {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-bottom: 4px;
+                }
+                
+                .word-stats {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                }
+                
+                .empty-state {
+                    text-align: center;
+                    color: var(--vscode-descriptionForeground);
+                    padding: 40px 20px;
+                }
+                
+                .mode-tabs {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 15px;
+                }
+                
+                .mode-tab {
+                    background-color: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                }
+                
+                .mode-tab.active {
+                    background-color: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
                 }
                 
                 .loading {
@@ -428,70 +423,82 @@ export class DataAnalysisProvider {
                     padding: 20px;
                     color: var(--vscode-descriptionForeground);
                 }
-                
-                .no-data {
-                    text-align: center;
-                    padding: 40px;
-                    color: var(--vscode-descriptionForeground);
-                }
             </style>
         </head>
         <body>
             <div class="header">
-                <select id="date-selector" class="date-selector">
-                    <option value="">选择日期...</option>
-                </select>
-                <button id="generate-btn" class="generate-btn" disabled>生成今日数据</button>
+                <h2>📊 数据分析</h2>
+                <div class="date-selector">
+                    <select id="dateSelector">
+                        <option value="">选择日期</option>
+                    </select>
+                </div>
+                <button class="button" id="generateTodayBtn">生成今日数据</button>
+                <button class="button" id="refreshBtn">🔄 刷新</button>
             </div>
             
-            <div id="data-content" class="loading">
-                正在加载数据...
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="normal">📝 正常模式</button>
+                <button class="mode-tab" data-mode="dictation">✏️ 默写模式</button>
+                <button class="mode-tab" data-mode="all">📈 全部数据</button>
             </div>
-
+            
+            <div id="content">
+                <div class="loading">加载中...</div>
+            </div>
+            
             <script>
                 const vscode = acquireVsCodeApi();
                 
-                vscode.postMessage({ type: 'requestDateList' });
-                
-                const dateSelector = document.getElementById('date-selector');
-                const generateBtn = document.getElementById('generate-btn');
-                
-                dateSelector.addEventListener('change', function() {
-                    const selectedDate = this.value;
-                    if (selectedDate) {
-                        vscode.postMessage({ 
-                            type: 'requestDateData', 
-                            date: selectedDate 
-                        });
-                        
-                        const today = new Date().toISOString().split('T')[0];
-                        generateBtn.disabled = selectedDate !== today;
-                    } else {
-                        document.getElementById('data-content').innerHTML = '<div class="no-data">请选择一个日期查看数据</div>';
-                        generateBtn.disabled = true;
-                    }
+                // 页面加载时请求日期列表
+                window.addEventListener('load', () => {
+                    vscode.postMessage({ type: 'requestDateList' });
                 });
                 
-                generateBtn.addEventListener('click', function() {
+                // 刷新按钮
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    vscode.postMessage({ type: 'requestDateList' });
+                });
+                
+                // 生成今日数据按钮
+                document.getElementById('generateTodayBtn').addEventListener('click', () => {
                     vscode.postMessage({ type: 'generateTodayData' });
                 });
                 
+                // 日期选择器变化
+                document.getElementById('dateSelector').addEventListener('change', (e) => {
+                    const selectedDate = e.target.value;
+                    if (selectedDate) {
+                        vscode.postMessage({ type: 'requestDateData', date: selectedDate });
+                    }
+                });
+                
+                // 模式切换
+                document.querySelectorAll('.mode-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        // 可以在这里添加模式切换的逻辑
+                    });
+                });
+                
+                // 接收来自扩展的消息
                 window.addEventListener('message', event => {
                     const message = event.data;
                     
                     switch (message.type) {
                         case 'dateList':
-                            updateDateList(message.dates);
+                            updateDateSelector(message.dates);
                             break;
                         case 'dateData':
-                            updateDateData(message.data);
+                            updateContent(message.data);
                             break;
                     }
                 });
                 
-                function updateDateList(dates) {
-                    const selector = document.getElementById('date-selector');
-                    selector.innerHTML = '<option value="">选择日期...</option>';
+                function updateDateSelector(dates) {
+                    const selector = document.getElementById('dateSelector');
+                    selector.innerHTML = '<option value="">选择日期</option>';
                     
                     dates.forEach(date => {
                         const option = document.createElement('option');
@@ -499,188 +506,71 @@ export class DataAnalysisProvider {
                         option.textContent = date;
                         selector.appendChild(option);
                     });
-                    
-                    if (dates.length === 0) {
-                        document.getElementById('data-content').innerHTML = '<div class="no-data">暂无数据快照<br>请先生成今日数据</div>';
-                    }
                 }
                 
-                let currentData = null;
-                let normalFilters = { dict: 'all', sort: 'word' };
-                let dictationFilters = { dict: 'all', sort: 'word' };
-
-                function updateDateData(data) {
+                function updateContent(data) {
+                    const content = document.getElementById('content');
+                    
                     if (!data) {
-                        document.getElementById('data-content').innerHTML = '<div class="no-data">该日期暂无数据</div>';
+                        content.innerHTML = '<div class="empty-state">暂无数据</div>';
                         return;
                     }
-
-                    currentData = data;
-
-                    let html = '<div class="stats-overview">';
-                    html += '<h3>📊 总体统计</h3>';
-                    html += '<div class="stats-grid">';
-                    html += '<div class="stat-item"><div class="stat-value">' + (data.totalStats.totalWordsNormal || 0) + '</div><div class="stat-label">正常模式单词数</div></div>';
-                    html += '<div class="stat-item"><div class="stat-value">' + (data.totalStats.totalWordsDictation || 0) + '</div><div class="stat-label">默写模式单词数</div></div>';
-                    html += '<div class="stat-item"><div class="stat-value">' + (data.totalStats.totalWordsAll || 0) + '</div><div class="stat-label">总单词数</div></div>';
-                    html += '</div></div>';
-
-                    html += '<div class="modes-container">';
                     
-                    // 正常模式 - 左下角
-                    html += '<div class="mode-section">';
-                    html += '<h3>📝 正常模式单词列表</h3>';
-                    html += generateFilters('normal', data.modes?.normal?.words || []);
-                    html += '<div id="normal-words-table"></div>';
-                    html += '</div>';
+                    // 构建统计信息
+                    const statsHtml = \`
+                        <div class="stats-container">
+                            <div class="stat-card">
+                                <div class="stat-title">今日练习单词数</div>
+                                <div class="stat-value">\${data.totalStats.totalWordsAll}</div>
+                                <div class="stat-detail">正常模式: \${data.totalStats.totalWordsNormal} | 默写模式: \${data.totalStats.totalWordsDictation}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-title">词典数量</div>
+                                <div class="stat-value">\${data.modes.normal.words.length > 0 ? new Set(data.modes.normal.words.map(w => w.dictId)).size : 0}</div>
+                                <div class="stat-detail">不同词典的练习记录</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-title">章节数量</div>
+                                <div class="stat-value">\${data.modes.normal.words.length > 0 ? new Set(data.modes.normal.words.map(w => \`\${w.dictId}-\${w.chapter}\`)).size : 0}</div>
+                                <div class="stat-detail">不同章节的练习记录</div>
+                            </div>
+                        </div>
+                    \`;
                     
-                    // 默写模式 - 右下角
-                    html += '<div class="mode-section">';
-                    html += '<h3>✍️ 默写模式单词列表</h3>';
-                    html += generateFilters('dictation', data.modes?.dictation?.words || []);
-                    html += '<div id="dictation-words-table"></div>';
-                    html += '</div>';
-                    
-                    html += '</div>';
-
-                    document.getElementById('data-content').innerHTML = html;
-                    
-                    // 渲染表格
-                    renderWordsTable('normal', data.modes?.normal?.words || []);
-                    renderWordsTable('dictation', data.modes?.dictation?.words || []);
-                    
-                    // 绑定筛选事件
-                    bindFilterEvents();
-                }
-
-                function generateFilters(mode, words) {
-                    const dicts = [...new Set(words.map(w => w.dictName || w.dictId))];
-                    
-                    let html = '<div class="filters-container">';
-                    html += '<div class="filter-group">';
-                    html += '<select class="filter-select" id="' + mode + '-dict-filter">';
-                    html += '<option value="all">全部词典</option>';
-                    dicts.forEach(dict => {
-                        html += '<option value="' + dict + '">' + dict + '</option>';
-                    });
-                    html += '</select></div>';
-                    
-                    html += '<div class="filter-group">';
-                    html += '<select class="filter-select" id="' + mode + '-sort-filter">';
-                    html += '<option value="word">按单词</option>';
-                    html += '<option value="word-desc">按单词(倒序)</option>';
-                    html += '<option value="practiceCount">按练习次数</option>';
-                    html += '<option value="practiceCount-desc">按练习次数(倒序)</option>';
-                    html += '<option value="correctRate">按正确率</option>';
-                    html += '<option value="correctRate-desc">按正确率(倒序)</option>';
-                    html += '<option value="lastPracticeTime">按最后练习时间</option>';
-                    html += '<option value="lastPracticeTime-desc">按最后练习时间(倒序)</option>';
-                    html += '</select></div>';
-                    html += '</div>';
-                    
-                    return html;
-                }
-
-                function renderWordsTable(mode, words) {
-                    const filters = mode === 'normal' ? normalFilters : dictationFilters;
-                    
-                    // 筛选
-                    let filteredWords = words;
-                    if (filters.dict !== 'all') {
-                        filteredWords = words.filter(w => (w.dictName || w.dictId) === filters.dict);
+                    // 构建单词列表
+                    let wordsHtml = '';
+                    if (data.modes.normal.words.length > 0 || data.modes.dictation.words.length > 0) {
+                        wordsHtml = \`
+                            <div class="words-container">
+                                <div class="words-header">
+                                    <span>今日练习单词</span>
+                                    <span>\${data.modes.normal.words.length + data.modes.dictation.words.length} 个单词</span>
+                                </div>
+                                <div class="words-list">
+                                    \${data.modes.normal.words.map(word => \`
+                                        <div class="word-item">
+                                            <div class="word-name">\${word.word}</div>
+                                            <div class="word-dict">\${word.dictName}</div>
+                                            <div class="word-chapter">\${word.chapterName}</div>
+                                            <div class="word-stats">练习次数: \${word.practiceRecord.practiceCount} | 正确率: \${Math.round(word.practiceRecord.correctRate)}%</div>
+                                        </div>
+                                    \`).join('')}
+                                    \${data.modes.dictation.words.map(word => \`
+                                        <div class="word-item">
+                                            <div class="word-name">\${word.word}</div>
+                                            <div class="word-dict">\${word.dictName}</div>
+                                            <div class="word-chapter">\${word.chapterName}</div>
+                                            <div class="word-stats">练习次数: \${word.practiceRecord.practiceCount} | 正确率: \${Math.round(word.practiceRecord.correctRate)}%</div>
+                                        </div>
+                                    \`).join('')}
+                                </div>
+                            </div>
+                        \`;
+                    } else {
+                        wordsHtml = '<div class="empty-state">今日暂无练习记录</div>';
                     }
                     
-                    // 排序
-                    filteredWords.sort((a, b) => {
-                        const aRecord = a.practiceRecord || {};
-                        const bRecord = b.practiceRecord || {};
-                        
-                        const isDesc = filters.sort.endsWith('-desc');
-                        const sortType = filters.sort.replace('-desc', '');
-                        
-                        let result = 0;
-                        switch (sortType) {
-                            case 'practiceCount':
-                                result = (aRecord.practiceCount || 0) - (bRecord.practiceCount || 0);
-                                break;
-                            case 'correctRate':
-                                result = (aRecord.correctRate || 0) - (bRecord.correctRate || 0);
-                                break;
-                            case 'lastPracticeTime':
-                                const aTime = aRecord.lastPracticeTime || '';
-                                const bTime = bRecord.lastPracticeTime || '';
-                                if (aTime === '从未练习' && bTime === '从未练习') result = 0;
-                                else if (aTime === '从未练习') result = 1;
-                                else if (bTime === '从未练习') result = -1;
-                                else result = aTime.localeCompare(bTime);
-                                break;
-                            default: // word
-                                result = a.word.localeCompare(b.word);
-                        }
-                        
-                        return isDesc ? -result : result;
-                    });
-                    
-                    let html = '<div class="words-table"><table>';
-                    html += '<thead><tr><th>单词</th><th>词典</th><th>章节</th><th>练习次数</th><th>正确次数</th><th>错误次数</th><th>正确率</th><th>最后练习时间</th></tr></thead><tbody>';
-                    
-                    filteredWords.forEach(function(wordItem) {
-                        const record = wordItem.practiceRecord || {};
-                        html += '<tr>';
-                        html += '<td class="word-name">' + wordItem.word + '</td>';
-                        html += '<td>' + (wordItem.dictName || wordItem.dictId) + '</td>';
-                        html += '<td>' + wordItem.chapterName + '</td>';
-                        html += '<td>' + (record.practiceCount || 0) + '</td>';
-                        html += '<td>' + (record.correctCount || 0) + '</td>';
-                        html += '<td>' + (record.errorCount || 0) + '</td>';
-                        html += '<td>' + (record.correctRate || 0).toFixed(1) + '%</td>';
-                        const lastTime = record.lastPracticeTime;
-                        let timeDisplay = '从未练习';
-                        if (lastTime && lastTime !== '从未练习') {
-                            const date = new Date(lastTime);
-                            if (!isNaN(date.getTime())) {
-                                timeDisplay = date.toLocaleString('zh-CN', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                });
-                            } else {
-                                timeDisplay = lastTime;
-                            }
-                        }
-                        html += '<td>' + timeDisplay + '</td>';
-                        html += '</tr>';
-                    });
-                    
-                    html += '</tbody></table></div>';
-                    
-                    document.getElementById(mode + '-words-table').innerHTML = html;
-                }
-
-                function bindFilterEvents() {
-                    // 正常模式筛选
-                    document.getElementById('normal-dict-filter').addEventListener('change', function() {
-                        normalFilters.dict = this.value;
-                        renderWordsTable('normal', currentData.modes?.normal?.words || []);
-                    });
-                    
-                    document.getElementById('normal-sort-filter').addEventListener('change', function() {
-                        normalFilters.sort = this.value;
-                        renderWordsTable('normal', currentData.modes?.normal?.words || []);
-                    });
-                    
-                    // 默写模式筛选
-                    document.getElementById('dictation-dict-filter').addEventListener('change', function() {
-                        dictationFilters.dict = this.value;
-                        renderWordsTable('dictation', currentData.modes?.dictation?.words || []);
-                    });
-                    
-                    document.getElementById('dictation-sort-filter').addEventListener('change', function() {
-                        dictationFilters.sort = this.value;
-                        renderWordsTable('dictation', currentData.modes?.dictation?.words || []);
-                    });
+                    content.innerHTML = statsHtml + wordsHtml;
                 }
             </script>
         </body>

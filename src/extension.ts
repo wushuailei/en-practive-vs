@@ -88,7 +88,12 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
 
-    context.subscriptions.push(openSettingsCommand, openAnalyticsCommand, openDataAnalysisCommand, fixChapterCompletionCommand);
+    context.subscriptions.push(
+        openSettingsCommand, 
+        openAnalyticsCommand, 
+        openDataAnalysisCommand, 
+        fixChapterCompletionCommand
+    );
 }
 
 export function deactivate() {}

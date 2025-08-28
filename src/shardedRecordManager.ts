@@ -15,32 +15,36 @@ export class ShardedRecordManager {
         this.dayRecordManager = new DayRecordManager(context);
     }
 
-    // 获取主记录文件路径（不包含章节详细数据）
-    private getMainRecordPath(dictId: string, practiceMode: PracticeMode): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'records', `${dictId}_${practiceMode}_main.json`);
+    // 获取主记录的 globalState 键名
+    private getMainRecordKey(dictId: string, practiceMode: PracticeMode): string {
+        return `enpractice.records.${dictId}.${practiceMode}.main`;
     }
 
-    // 获取章节记录文件路径
-    private getChapterRecordPath(dictId: string, chapterNumber: number, practiceMode: PracticeMode): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'records', `${dictId}_${practiceMode}_ch${chapterNumber}.json`);
+    // 获取章节记录的 globalState 键名
+    private getChapterRecordKey(dictId: string, chapterNumber: number, practiceMode: PracticeMode): string {
+        return `enpractice.records.${dictId}.${practiceMode}.ch${chapterNumber}`;
     }
 
     // 加载主记录（不包含章节详细数据）
     async loadMainRecord(dictId: string, dictName: string, totalWords: number, practiceMode: PracticeMode = 'normal'): Promise<DictRecord> {
         try {
-            const recordPath = this.getMainRecordPath(dictId, practiceMode);
-            const fileData = await vscode.workspace.fs.readFile(recordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            const record = JSON.parse(content) as DictRecord;
+            const recordKey = this.getMainRecordKey(dictId, practiceMode);
+            const record = this.context.globalState.get<DictRecord>(recordKey);
             
-            // 数据一致性检查和更新
-            if (record.totalWords !== totalWords) {
-                record.totalWords = totalWords;
-                record.totalChapters = Math.ceil(totalWords / FIXED_WORDS_PER_CHAPTER);
-                await this.saveMainRecord(record);
+            if (record) {
+                // 数据一致性检查和更新
+                if (record.totalWords !== totalWords) {
+                    record.totalWords = totalWords;
+                    record.totalChapters = Math.ceil(totalWords / FIXED_WORDS_PER_CHAPTER);
+                    await this.saveMainRecord(record);
+                }
+                return record;
             }
             
-            return record;
+            // 如果 globalState 中没有记录，则创建默认记录
+            const newRecord = createDefaultDictRecord(dictId, dictName, totalWords, practiceMode);
+            await this.saveMainRecord(newRecord);
+            return newRecord;
         } catch (error) {
             const newRecord = createDefaultDictRecord(dictId, dictName, totalWords, practiceMode);
             await this.saveMainRecord(newRecord);
@@ -51,10 +55,9 @@ export class ShardedRecordManager {
     // 保存主记录
     async saveMainRecord(record: DictRecord): Promise<void> {
         try {
-            const recordPath = this.getMainRecordPath(record.dictId, record.practiceMode);
-            // 直接保存记录，不包含章节数据
-            const content = JSON.stringify(record, null, 2);
-            await vscode.workspace.fs.writeFile(recordPath, Buffer.from(content, 'utf8'));
+            const recordKey = this.getMainRecordKey(record.dictId, record.practiceMode);
+            // 直接保存记录到 globalState，不包含章节数据
+            await this.context.globalState.update(recordKey, record);
         } catch (error) {
             console.error(`保存主记录失败: ${record.dictId} - ${record.practiceMode}模式`, error);
         }
@@ -63,12 +66,24 @@ export class ShardedRecordManager {
     // 加载章节记录
     async loadChapterRecord(dictId: string, chapterNumber: number, practiceMode: PracticeMode = 'normal'): Promise<ChapterRecord> {
         try {
-            const chapterPath = this.getChapterRecordPath(dictId, chapterNumber, practiceMode);
-            const fileData = await vscode.workspace.fs.readFile(chapterPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            return JSON.parse(content) as ChapterRecord;
+            const recordKey = this.getChapterRecordKey(dictId, chapterNumber, practiceMode);
+            const record = this.context.globalState.get<ChapterRecord>(recordKey);
+            
+            if (record) {
+                return record;
+            }
+            
+            // 如果 globalState 中没有记录，则返回默认章节记录
+            return {
+                chapterNumber,
+                totalWordsInChapter: 10,
+                completedWordsCount: 0,
+                chapterCompletionCount: 0,
+                lastPracticeTime: new Date().toISOString(),
+                wordRecords: {}
+            };
         } catch (error) {
-            // 返回默认章节记录，但不立即创建文件
+            // 返回默认章节记录
             return {
                 chapterNumber,
                 totalWordsInChapter: 10,
@@ -83,9 +98,8 @@ export class ShardedRecordManager {
     // 保存章节记录
     async saveChapterRecord(dictId: string, chapterRecord: ChapterRecord, practiceMode: PracticeMode = 'normal'): Promise<void> {
         try {
-            const chapterPath = this.getChapterRecordPath(dictId, chapterRecord.chapterNumber, practiceMode);
-            const content = JSON.stringify(chapterRecord, null, 2);
-            await vscode.workspace.fs.writeFile(chapterPath, Buffer.from(content, 'utf8'));
+            const recordKey = this.getChapterRecordKey(dictId, chapterRecord.chapterNumber, practiceMode);
+            await this.context.globalState.update(recordKey, chapterRecord);
         } catch (error) {
             console.error(`保存章节记录失败: ${dictId}, 章节: ${chapterRecord.chapterNumber} - ${practiceMode}模式`, error);
         }
@@ -204,45 +218,5 @@ export class ShardedRecordManager {
         } catch (error) {
             console.error('更新章节循环设置失败:', error);
         }
-    }
-
-    // 生成顺序排序数据（保留用于兼容性）
-    async generateSequentialOrder(dictId: string, totalWords: number): Promise<number[]> {
-        try {
-            const sequentialOrder = Array.from({ length: totalWords }, (_, i) => i);
-            return sequentialOrder;
-        } catch (error) {
-            console.error('生成顺序排序失败:', error);
-            return Array.from({ length: totalWords }, (_, i) => i);
-        }
-    }
-
-// 获取章节统计信息
-    async getChapterStats(dictId: string, chapterNumber: number, practiceMode: PracticeMode = 'normal'): Promise<ChapterRecord | null> {
-        try {
-            return await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
-        } catch (error) {
-            console.error('获取章节统计失败:', error);
-            return null;
-        }
-    }
-
-    // 获取单词统计信息
-    async getWordStats(dictId: string, chapterNumber: number, word: string, practiceMode: PracticeMode = 'normal'): Promise<WordRecord | null> {
-        try {
-            const chapterRecord = await this.loadChapterRecord(dictId, chapterNumber, practiceMode);
-            return chapterRecord.wordRecords[word] || null;
-        } catch (error) {
-            console.error('获取单词统计失败:', error);
-            return null;
-        }
-    }
-
-    // 获取存储信息（用于调试）
-    getStorageInfo(): { strategy: string; description: string } {
-        return {
-            strategy: 'Sharded Storage',
-            description: '每章一个文件，按需加载，简单高效'
-        };
     }
 }

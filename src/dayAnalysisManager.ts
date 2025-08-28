@@ -16,24 +16,23 @@ export class DayAnalysisManager {
         this.shardedRecordManager = new ShardedRecordManager(context);
     }
 
-    // 获取分析文件路径
-    private getAnalysisFilePath(date: string): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'dayRecordsAnalyze', `${date}_analysis.json`);
+    // 获取分析数据的 globalState 键名
+    private getAnalysisKey(date: string): string {
+        return `enpractice.dayRecordsAnalyze.${date}_analysis`;
     }
 
-    // 获取每日记录文件路径（按模式区分）
-    private getDayRecordPath(date: string, practiceMode: PracticeMode): vscode.Uri {
+    // 获取每日记录的 globalState 键名（按模式区分）
+    private getDayRecordKey(date: string, practiceMode: PracticeMode): string {
         const modeSuffix = practiceMode === 'normal' ? '' : `_${practiceMode}`;
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'dayRecords', `${date}${modeSuffix}.json`);
+        return `enpractice.dayRecords.${date}${modeSuffix}`;
     }
 
-    // 读取指定日期的记录文件
+    // 读取指定日期的记录
     private async readDayRecord(date: string, practiceMode: PracticeMode): Promise<DayRecord | null> {
         try {
-            const recordPath = this.getDayRecordPath(date, practiceMode);
-            const fileData = await vscode.workspace.fs.readFile(recordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            return JSON.parse(content) as DayRecord;
+            const recordKey = this.getDayRecordKey(date, practiceMode);
+            const record = this.context.globalState.get<DayRecord>(recordKey);
+            return record || null;
         } catch (error) {
             console.error(`读取每日记录失败 (${date} - ${practiceMode}):`, error);
             return null;
@@ -67,7 +66,6 @@ export class DayAnalysisManager {
     // 生成指定日期的分析报告
     async generateAnalysis(date: string, dayRecordManager: any): Promise<void> {
         try {
-
             // 读取两种模式的记录
             const normalRecord = await this.readDayRecord(date, 'normal');
             const dictationRecord = await this.readDayRecord(date, 'dictation');
@@ -150,11 +148,9 @@ export class DayAnalysisManager {
                 (sum: number, dict: any) => sum + dict.normalMode.words + dict.dictationMode.words, 0
             );
 
-            // 保存分析文件
-            const analysisPath = this.getAnalysisFilePath(date);
-            const content = JSON.stringify(analysisData, null, 2);
-            await vscode.workspace.fs.writeFile(analysisPath, Buffer.from(content, 'utf8'));
-            
+            // 保存分析数据到 globalState
+            const analysisKey = this.getAnalysisKey(date);
+            await this.context.globalState.update(analysisKey, analysisData);
             
             // 更新总记录状态
             await dayRecordManager.setAnalysisGenerated(date, true);

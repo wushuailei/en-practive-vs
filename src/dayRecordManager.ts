@@ -18,52 +18,55 @@ export class DayRecordManager {
         return now.toISOString().split('T')[0];
     }
 
-    // 获取每日记录文件路径（按模式区分）
-    private getDayRecordPath(date: string, practiceMode: PracticeMode): vscode.Uri {
+    // 获取每日记录的 globalState 键名（按模式区分）
+    private getDayRecordKey(date: string, practiceMode: PracticeMode): string {
         const modeSuffix = practiceMode === 'normal' ? '' : `_${practiceMode}`;
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'dayRecords', `${date}${modeSuffix}.json`);
+        return `enpractice.dayRecords.${date}${modeSuffix}`;
     }
 
-    // 获取总记录文件路径
-    private getTotalRecordPath(): vscode.Uri {
-        return vscode.Uri.joinPath(this.context.extensionUri, 'data', 'userdata', 'dayRecords', 'totalRecords.json');
+    // 获取总记录的 globalState 键名
+    private getTotalRecordKey(): string {
+        return 'enpractice.dayRecords.totalRecords';
     }
 
-    // 创建空的每日记录文件（如果不存在）
+    // 创建空的每日记录（如果不存在）
     async createDayRecordFile(practiceMode: PracticeMode = 'normal'): Promise<void> {
         const currentDate = this.getCurrentDate();
-        const recordPath = this.getDayRecordPath(currentDate, practiceMode);
+        const recordKey = this.getDayRecordKey(currentDate, practiceMode);
         
         try {
-            // 检查文件是否存在
-            await vscode.workspace.fs.stat(recordPath);
+            // 检查记录是否存在
+            const existingRecord = this.context.globalState.get<DayRecord>(recordKey);
+            if (!existingRecord) {
+                // 创建空记录
+                const emptyRecord: DayRecord = {
+                    date: currentDate,
+                    dicts: {}
+                };
+                
+                await this.context.globalState.update(recordKey, emptyRecord);
+                
+                // 更新总记录
+                await this.updateTotalRecords(currentDate);
+            }
         } catch (error) {
-            // 文件不存在，创建空文件
-            const emptyRecord: DayRecord = {
-                date: currentDate,
-                dicts: {}
-            };
-            
-            const content = JSON.stringify(emptyRecord, null, 2);
-            await vscode.workspace.fs.writeFile(recordPath, Buffer.from(content, 'utf8'));
-            
-            // 更新总记录
-            await this.updateTotalRecords(currentDate);
+            console.error('创建每日记录失败:', error);
         }
     }
 
-    // 更新总记录文件
+    // 更新总记录
     private async updateTotalRecords(date: string): Promise<void> {
-        const totalRecordPath = this.getTotalRecordPath();
+        const totalRecordKey = this.getTotalRecordKey();
         let totalRecords: { date: string; analysisGenerated: boolean }[] = [];
         
         try {
             // 读取现有的总记录
-            const fileData = await vscode.workspace.fs.readFile(totalRecordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            totalRecords = JSON.parse(content);
+            const existingRecords = this.context.globalState.get<{ date: string; analysisGenerated: boolean }[]>(totalRecordKey);
+            if (existingRecords) {
+                totalRecords = existingRecords;
+            }
         } catch (error) {
-            // 如果文件不存在或读取失败，创建空数组
+            // 如果读取失败，创建空数组
             totalRecords = [];
         }
         
@@ -78,8 +81,7 @@ export class DayRecordManager {
             });
             
             // 保存更新后的总记录
-            const content = JSON.stringify(totalRecords, null, 2);
-            await vscode.workspace.fs.writeFile(totalRecordPath, Buffer.from(content, 'utf8'));
+            await this.context.globalState.update(totalRecordKey, totalRecords);
         }
     }
 
@@ -87,16 +89,12 @@ export class DayRecordManager {
     async recordWordPractice(dictId: string, dictName: string, chapterNumber: number, word: string, practiceMode: PracticeMode = 'normal'): Promise<void> {
         try {
             const currentDate = this.getCurrentDate();
-            const recordPath = this.getDayRecordPath(currentDate, practiceMode);
+            const recordKey = this.getDayRecordKey(currentDate, practiceMode);
             
             // 读取当前记录
-            let dayRecord: DayRecord;
-            try {
-                const fileData = await vscode.workspace.fs.readFile(recordPath);
-                const content = Buffer.from(fileData).toString('utf8');
-                dayRecord = JSON.parse(content) as DayRecord;
-            } catch (error) {
-                // 如果文件不存在或读取失败，创建新的记录
+            let dayRecord = this.context.globalState.get<DayRecord>(recordKey);
+            if (!dayRecord) {
+                // 如果记录不存在，创建新的记录
                 dayRecord = {
                     date: currentDate,
                     dicts: {}
@@ -130,8 +128,7 @@ export class DayRecordManager {
                 chapterRecord.words.push(word);
                 
                 // 保存更新后的记录
-                const content = JSON.stringify(dayRecord, null, 2);
-                await vscode.workspace.fs.writeFile(recordPath, Buffer.from(content, 'utf8'));
+                await this.context.globalState.update(recordKey, dayRecord);
             }
         } catch (error) {
             console.error('记录每日单词练习失败:', error);
@@ -141,10 +138,9 @@ export class DayRecordManager {
     // 获取指定日期的记录
     async getDayRecord(date: string, practiceMode: PracticeMode = 'normal'): Promise<DayRecord | null> {
         try {
-            const recordPath = this.getDayRecordPath(date, practiceMode);
-            const fileData = await vscode.workspace.fs.readFile(recordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            return JSON.parse(content) as DayRecord;
+            const recordKey = this.getDayRecordKey(date, practiceMode);
+            const record = this.context.globalState.get<DayRecord>(recordKey);
+            return record || null;
         } catch (error) {
             console.error(`获取每日记录失败 (${date}):`, error);
             return null;
@@ -159,12 +155,11 @@ export class DayRecordManager {
 
     // 获取总记录
     async getTotalRecords(): Promise<{ date: string; analysisGenerated: boolean }[]> {
-        const totalRecordPath = this.getTotalRecordPath();
+        const totalRecordKey = this.getTotalRecordKey();
         
         try {
-            const fileData = await vscode.workspace.fs.readFile(totalRecordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            return JSON.parse(content);
+            const records = this.context.globalState.get<{ date: string; analysisGenerated: boolean }[]>(totalRecordKey);
+            return records || [];
         } catch (error) {
             console.error('获取总记录失败:', error);
             return [];
@@ -173,14 +168,15 @@ export class DayRecordManager {
 
     // 设置指定日期的分析文件生成状态
     async setAnalysisGenerated(date: string, generated: boolean = true): Promise<void> {
-        const totalRecordPath = this.getTotalRecordPath();
+        const totalRecordKey = this.getTotalRecordKey();
         let totalRecords: { date: string; analysisGenerated: boolean }[] = [];
         
         try {
             // 读取现有的总记录
-            const fileData = await vscode.workspace.fs.readFile(totalRecordPath);
-            const content = Buffer.from(fileData).toString('utf8');
-            totalRecords = JSON.parse(content);
+            const existingRecords = this.context.globalState.get<{ date: string; analysisGenerated: boolean }[]>(totalRecordKey);
+            if (existingRecords) {
+                totalRecords = existingRecords;
+            }
         } catch (error) {
             console.error('获取总记录失败:', error);
             return;
@@ -192,8 +188,7 @@ export class DayRecordManager {
             existingRecord.analysisGenerated = generated;
             
             // 保存更新后的总记录
-            const content = JSON.stringify(totalRecords, null, 2);
-            await vscode.workspace.fs.writeFile(totalRecordPath, Buffer.from(content, 'utf8'));
+            await this.context.globalState.update(totalRecordKey, totalRecords);
         }
     }
 }
