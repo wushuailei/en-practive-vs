@@ -54,6 +54,11 @@
         "command": "enpractice.openDataAnalysis",
         "title": "Analysis",
         "icon": "$(graph)"
+      },
+      {
+        "command": "enpractice.openDataViewer",
+        "title": "Data Viewer",
+        "icon": "$(database)"
       }
     ],
     "menus": {
@@ -70,6 +75,11 @@
         },
         {
           "command": "enpractice.openDataAnalysis",
+          "when": "view == enpractice.practiceView",
+          "group": "navigation"
+        },
+        {
+          "command": "enpractice.openDataViewer",
           "when": "view == enpractice.practiceView",
           "group": "navigation"
         }

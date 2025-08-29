@@ -922,15 +922,30 @@ export class AnalyticsProvider {
                 option.textContent = wordBook.name + ' (' + wordBook.length + '个单词)';
                 select.appendChild(option);
             });
+            
+            // 在词书列表更新后，检查是否需要设置当前词书
+            if (currentWordBookId) {
+                select.value = currentWordBookId;
+                // 如果当前没有数据显示，自动加载当前词书数据
+                if (document.getElementById('loadingContent').style.display !== 'none' || 
+                    document.getElementById('analyticsContent').style.display === 'none') {
+                    selectWordBook(currentWordBookId);
+                }
+            }
         }
         
         function setCurrentDict(dictId) {
+            // 保存当前词书ID
+            currentWordBookId = dictId;
+            
+            // 如果词书选择器已经存在，直接设置值并加载数据
             const select = document.getElementById('wordbookSelect');
-            if (select && dictId) {
+            if (select) {
                 select.value = dictId;
                 // 自动选中当前词典
                 selectWordBook(dictId);
             }
+            // 如果选择器还不存在，会在updateWordBookSelector中处理
         }
 
         function selectWordBook(wordBookId) {
@@ -941,7 +956,7 @@ export class AnalyticsProvider {
                 
                 // 获取当前选中的模式
                 const modeSelect = document.getElementById('modeSelect');
-                const practiceMode = modeSelect.value;
+                const practiceMode = modeSelect ? modeSelect.value : 'normal';
                 
                 vscode.postMessage({
                     command: 'selectPracticeMode',

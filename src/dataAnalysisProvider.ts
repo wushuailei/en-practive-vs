@@ -437,6 +437,11 @@ export class DataAnalysisProvider {
             <script>
                 const vscode = acquireVsCodeApi();
                 
+                // 当前选择的模式
+                let currentMode = 'normal';
+                // 当前显示的数据
+                let currentData = null;
+                
                 // 页面加载时请求日期列表
                 window.addEventListener('load', () => {
                     vscode.postMessage({ type: 'requestDateList' });
@@ -465,7 +470,11 @@ export class DataAnalysisProvider {
                     tab.addEventListener('click', () => {
                         document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
-                        // 可以在这里添加模式切换的逻辑
+                        currentMode = tab.dataset.mode;
+                        // 更新内容显示
+                        if (currentData) {
+                            updateContent(currentData);
+                        }
                     });
                 });
                 
@@ -478,6 +487,7 @@ export class DataAnalysisProvider {
                             updateDateSelector(message.dates);
                             break;
                         case 'dateData':
+                            currentData = message.data;
                             updateContent(message.data);
                             break;
                     }
@@ -503,22 +513,40 @@ export class DataAnalysisProvider {
                         return;
                     }
                     
+                    // 根据当前模式过滤数据
+                    let normalWords = data.modes.normal.words || [];
+                    let dictationWords = data.modes.dictation.words || [];
+                    let displayWords = [];
+                    
+                    switch (currentMode) {
+                        case 'normal':
+                            displayWords = normalWords;
+                            break;
+                        case 'dictation':
+                            displayWords = dictationWords;
+                            break;
+                        case 'all':
+                        default:
+                            displayWords = [...normalWords, ...dictationWords];
+                            break;
+                    }
+                    
                     // 构建统计信息
                     const statsHtml = \`
                         <div class="stats-container">
                             <div class="stat-card">
                                 <div class="stat-title">今日练习单词数</div>
-                                <div class="stat-value">\${data.totalStats.totalWordsAll}</div>
-                                <div class="stat-detail">正常模式: \${data.totalStats.totalWordsNormal} | 默写模式: \${data.totalStats.totalWordsDictation}</div>
+                                <div class="stat-value">\${displayWords.length}</div>
+                                <div class="stat-detail">正常模式: \${normalWords.length} | 默写模式: \${dictationWords.length}</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-title">词典数量</div>
-                                <div class="stat-value">\${data.modes.normal.words.length > 0 ? new Set(data.modes.normal.words.map(w => w.dictId)).size : 0}</div>
+                                <div class="stat-value">\${displayWords.length > 0 ? new Set(displayWords.map(w => w.dictId)).size : 0}</div>
                                 <div class="stat-detail">不同词典的练习记录</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-title">章节数量</div>
-                                <div class="stat-value">\${data.modes.normal.words.length > 0 ? new Set(data.modes.normal.words.map(w => \`\${w.dictId}-\${w.chapter}\`)).size : 0}</div>
+                                <div class="stat-value">\${displayWords.length > 0 ? new Set(displayWords.map(w => \`\${w.dictId}-\${w.chapter}\`)).size : 0}</div>
                                 <div class="stat-detail">不同章节的练习记录</div>
                             </div>
                         </div>
@@ -526,23 +554,15 @@ export class DataAnalysisProvider {
                     
                     // 构建单词列表
                     let wordsHtml = '';
-                    if (data.modes.normal.words.length > 0 || data.modes.dictation.words.length > 0) {
+                    if (displayWords.length > 0) {
                         wordsHtml = \`
                             <div class="words-container">
                                 <div class="words-header">
                                     <span>今日练习单词</span>
-                                    <span>\${data.modes.normal.words.length + data.modes.dictation.words.length} 个单词</span>
+                                    <span>\${displayWords.length} 个单词</span>
                                 </div>
                                 <div class="words-list">
-                                    \${data.modes.normal.words.map(word => \`
-                                        <div class="word-item">
-                                            <div class="word-name">\${word.word}</div>
-                                            <div class="word-dict">\${word.dictName}</div>
-                                            <div class="word-chapter">\${word.chapterName}</div>
-                                            <div class="word-stats">练习次数: \${word.practiceRecord.practiceCount} | 正确率: \${Math.round(word.practiceRecord.correctRate)}%</div>
-                                        </div>
-                                    \`).join('')}
-                                    \${data.modes.dictation.words.map(word => \`
+                                    \${displayWords.map(word => \`
                                         <div class="word-item">
                                             <div class="word-name">\${word.word}</div>
                                             <div class="word-dict">\${word.dictName}</div>

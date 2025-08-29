@@ -184,12 +184,26 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
 
     // 添加刷新词书数据的方法
     public async refreshWordBooks() {
-        await this.loadWordsData();
+        // 重新初始化所有数据
+        this.isInitialized = false;
+        this.settings = defaultSettings;
+        this.currentDictRecord = undefined;
+        this.currentDictId = '';
+        this.wordsData = [];
+        this.currentChapterWords = [];
+        
+        // 重新加载数据
+        await this.initializeWordsData();
+        
+        // 更新webview显示
         if (this._view) {
-            this._view.webview.postMessage({
-                command: 'loadWords',
-                data: this.wordsData
-            });
+            // 重新生成HTML以确保所有元素都正确初始化
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview, this.settings.practiceMode);
+            
+            // 等待webview加载完成后发送数据
+            setTimeout(() => {
+                this.updateWebview();
+            }, 100);
         }
     }
 
@@ -235,6 +249,11 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                         break;
                     case 'nextWord':
                         await this.nextWord();
+                        break;
+                    case 'openDataViewer':
+                        // 打开数据查看器
+                        const dataViewerProvider = new (await import('./dataViewerProvider')).DataViewerProvider(this.context);
+                        dataViewerProvider.show();
                         break;
                 }
             }
@@ -842,10 +861,10 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                     
                     // 记录错误结果
                     vscode.postMessage({
-                        command: 'wordPracticeResult',
-                        word: word.name,
-                        isCorrect: false
-                    });
+                            command: 'wordPracticeResult',
+                            word: word.name,
+                            isCorrect: false
+                        });
                     return false;
                 }
             }

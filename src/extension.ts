@@ -5,6 +5,7 @@ import { AnalyticsProvider } from './analyticsProvider';
 import { DataAnalysisProvider } from './dataAnalysisProvider';
 import { DayRecordManager } from './dayRecordManager';
 import { DayAnalysisManager } from './dayAnalysisManager';
+import { DataViewerProvider } from './dataViewerProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('EnPractice extension is now active!');
@@ -27,6 +28,17 @@ export function activate(context: vscode.ExtensionContext) {
     // 创建日常分析管理器实例
     const dayAnalysisManager = new DayAnalysisManager(context);
 
+    // 创建数据查看器实例
+    const dataViewerProvider = new DataViewerProvider(context);
+    
+    // 设置数据查看器重置数据后的回调函数
+    dataViewerProvider.setOnDidResetDataCallback(() => {
+        // 刷新练习面板
+        provider.refreshWordBooks().catch(error => {
+            console.error('刷新练习面板失败:', error);
+        });
+    });
+
     // 注册设置命令
     let openSettingsCommand = vscode.commands.registerCommand('enpractice.openSettings', () => {
         showSettingsPanel(context, provider);
@@ -42,33 +54,9 @@ export function activate(context: vscode.ExtensionContext) {
         dataAnalysisProvider.show();
     });
 
-    // 添加调试命令：重新计算章节完成次数
-    let fixChapterCompletionCommand = vscode.commands.registerCommand('enpractice.fixChapterCompletion', async () => {
-        try {
-            const recordManager = provider.getRecordManager();
-            const currentDictId = provider.getCurrentDictId();
-            
-            if (!currentDictId) {
-                vscode.window.showErrorMessage('请先选择一个词典');
-                return;
-            }
-
-            // 重新计算第1章的完成次数
-            const chapterRecord = await recordManager.loadChapterRecord(currentDictId, 1, 'normal');
-            const allWordRecords = Object.values(chapterRecord.wordRecords).filter((wr: any) => wr.practiceCount > 0);
-            const correctCounts = allWordRecords.map((wr: any) => wr.correctCount);
-            const newCompletionCount = correctCounts.length > 0 ? Math.min(...correctCounts) : 0;
-            
-            
-            chapterRecord.chapterCompletionCount = newCompletionCount;
-            chapterRecord.lastPracticeTime = new Date().toISOString();
-            
-            await recordManager.saveChapterRecord(currentDictId, chapterRecord, 'normal');
-            
-            vscode.window.showInformationMessage(`章节完成次数已修复: ${chapterRecord.chapterCompletionCount}`);
-        } catch (error) {
-            vscode.window.showErrorMessage(`修复失败: ${error}`);
-        }
+    // 注册数据查看器命令
+    const openDataViewerCommand = vscode.commands.registerCommand('enpractice.openDataViewer', () => {
+        dataViewerProvider.show();
     });
 
     // 在插件激活时自动创建当天的记录文件（为两种模式都创建）
@@ -91,8 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         openSettingsCommand, 
         openAnalyticsCommand, 
-        openDataAnalysisCommand, 
-        fixChapterCompletionCommand
+        openDataAnalysisCommand,
+        openDataViewerCommand
     );
 }
 
