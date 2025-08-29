@@ -19,7 +19,7 @@ export class DayRecordManager {
     }
 
     // 获取每日记录的 globalState 键名（按模式区分）
-    private getDayRecordKey(date: string, practiceMode: PracticeMode): string {
+    public getDayRecordKey(date: string, practiceMode: PracticeMode): string {
         const modeSuffix = practiceMode === 'normal' ? '' : `_${practiceMode}`;
         return `enpractice.dayRecords.${date}${modeSuffix}`;
     }
@@ -55,7 +55,7 @@ export class DayRecordManager {
     }
 
     // 更新总记录
-    private async updateTotalRecords(date: string): Promise<void> {
+    public async updateTotalRecords(date: string): Promise<void> {
         const totalRecordKey = this.getTotalRecordKey();
         let totalRecords: { date: string; analysisGenerated: boolean }[] = [];
         

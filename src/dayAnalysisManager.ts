@@ -230,24 +230,61 @@ export class DayAnalysisManager {
         // 按日期排序，最新的在前
         const sortedRecords = [...totalRecords].sort((a, b) => b.date.localeCompare(a.date));
         
-        let foundNonTodayRecord = false;
-        
+        // 寻找第一个需要生成分析报告且有数据的记录
         for (const record of sortedRecords) {
             // 跳过今天的记录
             if (record.date >= today) {
                 continue;
             }
             
-            // 找到第一个不是今天的记录
-            if (!foundNonTodayRecord) {
-                foundNonTodayRecord = true;
-                // 检查是否需要生成分析报告
-                if (!record.analysisGenerated) {
-                    await this.generateAnalysis(record.date, dayRecordManager);
-                }
-                // 处理完最新的非当天记录后就结束
-                break;
+            // 检查是否需要生成分析报告且该日期有练习数据
+            if (!record.analysisGenerated && await this.hasPracticeData(record.date)) {
+                await this.generateAnalysis(record.date, dayRecordManager);
+                break; // 只处理一条记录
             }
+        }
+    }
+    
+    // 检查指定日期是否有练习数据
+    private async hasPracticeData(date: string): Promise<boolean> {
+        try {
+            // 获取正常模式和默写模式的记录
+            const normalRecord = await this.readDayRecord(date, 'normal');
+            const dictationRecord = await this.readDayRecord(date, 'dictation');
+            
+            // 检查是否有任何词典包含章节数据
+            if (normalRecord && normalRecord.dicts) {
+                for (const dictId in normalRecord.dicts) {
+                    const dict = normalRecord.dicts[dictId];
+                    if (dict.chapters) {
+                        for (const chapterNum in dict.chapters) {
+                            const chapter = dict.chapters[chapterNum];
+                            if (chapter.words && chapter.words.length > 0) {
+                                return true; // 找到有数据的记录
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (dictationRecord && dictationRecord.dicts) {
+                for (const dictId in dictationRecord.dicts) {
+                    const dict = dictationRecord.dicts[dictId];
+                    if (dict.chapters) {
+                        for (const chapterNum in dict.chapters) {
+                            const chapter = dict.chapters[chapterNum];
+                            if (chapter.words && chapter.words.length > 0) {
+                                return true; // 找到有数据的记录
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return false; // 没有找到有数据的记录
+        } catch (error) {
+            console.error(`检查日期 ${date} 是否有练习数据时出错:`, error);
+            return false; // 出错时假设没有数据
         }
     }
 }

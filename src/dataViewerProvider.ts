@@ -101,6 +101,16 @@ export class DataViewerProvider {
                 }
             }
             
+            // 添加今天的记录到 totalRecords
+            const today = new Date().toISOString().split('T')[0];
+            const totalRecordKey = 'enpractice.dayRecords.totalRecords';
+            const totalRecords = [{
+                date: today,
+                analysisGenerated: false
+            }];
+            
+            await this.context.globalState.update(totalRecordKey, totalRecords);
+            
             // 显示成功消息
             vscode.window.showInformationMessage('所有练习数据已重置');
         } catch (error) {

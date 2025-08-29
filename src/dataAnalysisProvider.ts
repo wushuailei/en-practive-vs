@@ -1,14 +1,17 @@
 import * as vscode from 'vscode';
 import { DayRecordManager } from './dayRecordManager';
+import { DayAnalysisManager } from './dayAnalysisManager';
 
 export class DataAnalysisProvider {
     private panel: vscode.WebviewPanel | undefined;
     private dayRecordManager: DayRecordManager;
+    private dayAnalysisManager: DayAnalysisManager;
 
     constructor(
         private readonly context: vscode.ExtensionContext
     ) {
         this.dayRecordManager = new DayRecordManager(context);
+        this.dayAnalysisManager = new DayAnalysisManager(context);
     }
 
     public show() {
@@ -39,6 +42,9 @@ export class DataAnalysisProvider {
                     break;
                 case 'generateTodayData':
                     await this.generateTodayData();
+                    break;
+                case 'generateAnalysisData':
+                    await this.generateAnalysisData(data.date);
                     break;
             }
         });
@@ -197,6 +203,218 @@ export class DataAnalysisProvider {
         } catch (error) {
             console.error('Error generating today data:', error);
             vscode.window.showErrorMessage('生成今日数据失败: ' + error);
+        }
+    }
+
+    // 生成指定日期的分析数据
+    private async generateAnalysisData(date: string) {
+        try {
+            // 首先复制当日数据到目标日期
+            await this.copyCurrentDataToTargetDate(date);
+            
+            // 然后生成该日期的快照数据（每日数据）
+            await this.generateSnapshotData(date);
+            
+            // 最后生成分析数据
+            await this.dayAnalysisManager.generateAnalysis(date, this.dayRecordManager);
+            
+            // 刷新数据显示
+            await this.sendDateList();
+            await this.sendDateData(date);
+            
+            vscode.window.showInformationMessage(`✅ 已生成 ${date} 的分析数据`);
+        } catch (error) {
+            console.error(`生成分析数据失败 (${date}):`, error);
+            vscode.window.showErrorMessage(`生成分析数据失败: ${error}`);
+        }
+    }
+
+    // 复制当日数据到目标日期
+    private async copyCurrentDataToTargetDate(targetDate: string) {
+        try {
+            const currentDate = new Date().toISOString().split('T')[0];
+            
+            // 如果目标日期就是今天，则不需要复制
+            if (targetDate === currentDate) {
+                // 确保今天的记录存在
+                await this.ensureTodayRecordsExist();
+                return;
+            }
+            
+            // 获取当日的正常模式记录
+            const currentNormalRecord = await this.dayRecordManager.getDayRecord(currentDate, 'normal');
+            // 获取当日的默写模式记录
+            const currentDictationRecord = await this.dayRecordManager.getDayRecord(currentDate, 'dictation');
+            
+            // 如果当日有正常模式记录，则复制到目标日期
+            if (currentNormalRecord) {
+                const targetNormalRecordKey = this.dayRecordManager.getDayRecordKey(targetDate, 'normal');
+                await this.context.globalState.update(targetNormalRecordKey, {
+                    ...currentNormalRecord,
+                    date: targetDate
+                });
+            }
+            
+            // 如果当日有默写模式记录，则复制到目标日期
+            if (currentDictationRecord) {
+                const targetDictationRecordKey = this.dayRecordManager.getDayRecordKey(targetDate, 'dictation');
+                await this.context.globalState.update(targetDictationRecordKey, {
+                    ...currentDictationRecord,
+                    date: targetDate
+                });
+            }
+            
+            // 更新总记录列表
+            await this.updateTotalRecords(targetDate);
+        } catch (error) {
+            console.error(`复制当日数据到目标日期失败 (${targetDate}):`, error);
+            throw error;
+        }
+    }
+
+    // 确保今天的记录存在
+    private async ensureTodayRecordsExist() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 确保正常模式记录存在
+            const normalRecord = await this.dayRecordManager.getDayRecord(today, 'normal');
+            if (!normalRecord) {
+                const normalRecordKey = this.dayRecordManager.getDayRecordKey(today, 'normal');
+                const emptyNormalRecord = {
+                    date: today,
+                    dicts: {}
+                };
+                await this.context.globalState.update(normalRecordKey, emptyNormalRecord);
+            }
+            
+            // 确保默写模式记录存在
+            const dictationRecord = await this.dayRecordManager.getDayRecord(today, 'dictation');
+            if (!dictationRecord) {
+                const dictationRecordKey = this.dayRecordManager.getDayRecordKey(today, 'dictation');
+                const emptyDictationRecord = {
+                    date: today,
+                    dicts: {}
+                };
+                await this.context.globalState.update(dictationRecordKey, emptyDictationRecord);
+            }
+            
+            // 更新总记录列表
+            await this.updateTotalRecords(today);
+        } catch (error) {
+            console.error('确保今日记录存在时出错:', error);
+            throw error;
+        }
+    }
+
+    // 更新总记录
+    private async updateTotalRecords(date: string): Promise<void> {
+        try {
+            await this.dayRecordManager.updateTotalRecords(date);
+        } catch (error) {
+            console.error(`更新总记录失败 (${date}):`, error);
+            throw error;
+        }
+    }
+
+    // 生成指定日期的快照数据
+    private async generateSnapshotData(date: string) {
+        try {
+            // 获取指定日期的记录数据
+            const normalRecord = await this.dayRecordManager.getDayRecord(date, 'normal');
+            const dictationRecord = await this.dayRecordManager.getDayRecord(date, 'dictation');
+            
+            // 创建基于单词的快照数据结构
+            const snapshot: any = {
+                date: date,
+                generatedAt: new Date().toISOString(),
+                modes: {
+                    normal: {
+                        words: [],
+                        totalWords: 0
+                    },
+                    dictation: {
+                        words: [],
+                        totalWords: 0
+                    }
+                },
+                totalStats: {
+                    totalWordsNormal: 0,
+                    totalWordsDictation: 0,
+                    totalWordsAll: 0
+                }
+            };
+
+            // 处理正常模式数据
+            if (normalRecord && normalRecord.dicts) {
+                const normalWords: any[] = [];
+                
+                Object.entries(normalRecord.dicts).forEach(([dictId, dict]: [string, any]) => {
+                    Object.entries(dict.chapters).forEach(([chapterNum, chapter]: [string, any]) => {
+                        if (chapter.words && Array.isArray(chapter.words)) {
+                            chapter.words.forEach((wordName: string) => {
+                                // 获取单词的练习记录（从records文件夹）
+                                const wordData = this.getWordPracticeRecord(dictId, parseInt(chapterNum), wordName, 'normal');
+                                
+                                normalWords.push({
+                                    word: wordName,
+                                    dictId: dictId,
+                                    dictName: dict.dictName,
+                                    chapter: parseInt(chapterNum),
+                                    chapterName: `第${chapterNum}章`,
+                                    practiceRecord: wordData,
+                                    practicedToday: true
+                                });
+                            });
+                        }
+                    });
+                });
+                
+                snapshot.modes.normal.words = normalWords;
+                snapshot.modes.normal.totalWords = normalWords.length;
+                snapshot.totalStats.totalWordsNormal = normalWords.length;
+            }
+
+            // 处理默写模式数据
+            if (dictationRecord && dictationRecord.dicts) {
+                const dictationWords: any[] = [];
+                
+                Object.entries(dictationRecord.dicts).forEach(([dictId, dict]: [string, any]) => {
+                    Object.entries(dict.chapters).forEach(([chapterNum, chapter]: [string, any]) => {
+                        if (chapter.words && Array.isArray(chapter.words)) {
+                            chapter.words.forEach((wordName: string) => {
+                                // 获取单词的练习记录（从records文件夹）
+                                const wordData = this.getWordPracticeRecord(dictId, parseInt(chapterNum), wordName, 'dictation');
+                                
+                                dictationWords.push({
+                                    word: wordName,
+                                    dictId: dictId,
+                                    dictName: dict.dictName,
+                                    chapter: parseInt(chapterNum),
+                                    chapterName: `第${chapterNum}章`,
+                                    practiceRecord: wordData,
+                                    practicedToday: true
+                                });
+                            });
+                        }
+                    });
+                });
+                
+                snapshot.modes.dictation.words = dictationWords;
+                snapshot.modes.dictation.totalWords = dictationWords.length;
+                snapshot.totalStats.totalWordsDictation = dictationWords.length;
+            }
+            
+            // 计算总单词数
+            snapshot.totalStats.totalWordsAll = snapshot.totalStats.totalWordsNormal + snapshot.totalStats.totalWordsDictation;
+
+            // 保存快照数据到 globalState
+            const snapshotKey = `enpractice.snapshots.${date}`;
+            await this.context.globalState.update(snapshotKey, snapshot);
+
+        } catch (error) {
+            console.error(`生成快照数据失败 (${date}):`, error);
+            throw error;
         }
     }
 
@@ -410,6 +628,112 @@ export class DataAnalysisProvider {
                     padding: 20px;
                     color: var(--vscode-descriptionForeground);
                 }
+                
+                .generate-analysis-btn {
+                    background-color: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: none;
+                    padding: 4px 12px;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    margin-left: 10px;
+                }
+                
+                .generate-analysis-btn:hover {
+                    background-color: var(--vscode-button-hoverBackground);
+                }
+                
+                /* 日期选择弹窗样式 */
+                .modal {
+                    display: none;
+                    position: fixed;
+                    z-index: 1000;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                }
+                
+                .modal-content {
+                    background-color: var(--vscode-editor-background);
+                    margin: 15% auto;
+                    padding: 20px;
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
+                    width: 300px;
+                }
+                
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 15px;
+                }
+                
+                .modal-title {
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                
+                .close {
+                    color: var(--vscode-descriptionForeground);
+                    font-size: 24px;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+                
+                .close:hover {
+                    color: var(--vscode-foreground);
+                }
+                
+                .modal-body {
+                    margin-bottom: 20px;
+                }
+                
+                .date-input {
+                    width: 100%;
+                    padding: 6px 10px;
+                    background-color: var(--vscode-input-background);
+                    color: var(--vscode-input-foreground);
+                    border: 1px solid var(--vscode-input-border);
+                    border-radius: 2px;
+                    box-sizing: border-box;
+                }
+                
+                .modal-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                }
+                
+                .modal-btn {
+                    padding: 6px 12px;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    font-size: 13px;
+                }
+                
+                .modal-confirm {
+                    background-color: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: 1px solid var(--vscode-button-background);
+                }
+                
+                .modal-cancel {
+                    background-color: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                    border: 1px solid var(--vscode-button-secondaryBackground);
+                }
+                
+                .modal-confirm:hover {
+                    background-color: var(--vscode-button-hoverBackground);
+                }
+                
+                .modal-cancel:hover {
+                    background-color: var(--vscode-button-secondaryHoverBackground);
+                }
             </style>
         </head>
         <body>
@@ -420,8 +744,26 @@ export class DataAnalysisProvider {
                         <option value="">选择日期</option>
                     </select>
                 </div>
+                <button class="button" id="generateAnalysisBtn">生成分析数据</button>
                 <button class="button" id="generateTodayBtn">生成今日数据</button>
                 <button class="button" id="refreshBtn">🔄 刷新</button>
+            </div>
+            
+            <!-- 日期选择弹窗 -->
+            <div id="dateModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title">选择日期</div>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <input type="date" id="analysisDateInput" class="date-input">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="modal-btn modal-cancel" id="cancelDateBtn">取消</button>
+                        <button class="modal-btn modal-confirm" id="confirmDateBtn">确认</button>
+                    </div>
+                </div>
             </div>
             
             <div class="mode-tabs">
@@ -441,6 +783,8 @@ export class DataAnalysisProvider {
                 let currentMode = 'normal';
                 // 当前显示的数据
                 let currentData = null;
+                // 当前选择的日期
+                let selectedDate = '';
                 
                 // 页面加载时请求日期列表
                 window.addEventListener('load', () => {
@@ -457,9 +801,47 @@ export class DataAnalysisProvider {
                     vscode.postMessage({ type: 'generateTodayData' });
                 });
                 
+                // 生成分析数据按钮
+                document.getElementById('generateAnalysisBtn').addEventListener('click', () => {
+                    // 显示日期选择弹窗
+                    document.getElementById('dateModal').style.display = 'block';
+                    // 设置默认日期为今天
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('analysisDateInput').value = today;
+                });
+                
+                // 弹窗关闭按钮
+                document.querySelector('.close').addEventListener('click', () => {
+                    document.getElementById('dateModal').style.display = 'none';
+                });
+                
+                // 取消按钮
+                document.getElementById('cancelDateBtn').addEventListener('click', () => {
+                    document.getElementById('dateModal').style.display = 'none';
+                });
+                
+                // 确认按钮
+                document.getElementById('confirmDateBtn').addEventListener('click', () => {
+                    const selectedDate = document.getElementById('analysisDateInput').value;
+                    if (selectedDate) {
+                        document.getElementById('dateModal').style.display = 'none';
+                        vscode.postMessage({ type: 'generateAnalysisData', date: selectedDate });
+                    } else {
+                        alert('请选择一个日期');
+                    }
+                });
+                
+                // 点击弹窗外部关闭弹窗
+                window.addEventListener('click', (event) => {
+                    const modal = document.getElementById('dateModal');
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+                
                 // 日期选择器变化
                 document.getElementById('dateSelector').addEventListener('change', (e) => {
-                    const selectedDate = e.target.value;
+                    selectedDate = e.target.value;
                     if (selectedDate) {
                         vscode.postMessage({ type: 'requestDateData', date: selectedDate });
                     }
