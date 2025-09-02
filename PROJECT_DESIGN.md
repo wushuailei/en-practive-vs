@@ -144,8 +144,6 @@ interface WordRecord           # 单词练习记录
 interface ChapterRecord        # 章节练习记录
 interface DictRecord           # 词典练习记录
 interface DayRecord           # 每日记录
-interface DayDictRecord       # 每日词典记录
-interface DayChapterRecord    # 每日章节记录
 type PracticeMode = 'normal' | 'dictation'  # 练习模式
 ```
 
@@ -328,17 +326,35 @@ graph TD
 ┌─────────┐ ┌─────────┐
 │ 正常模式 │ │ 默写模式 │  # {date}.json, {date}_dictation.json
 ├─────────┤ ├─────────┤
-│词典记录  │ │词典记录  │
-│章节记录  │ │章节记录  │
-│单词记录  │ │单词记录  │
+│单词记录数组│ │单词记录数组│
+│(包含详细信息)│ │(包含详细信息)│
 └─────────┘ └─────────┘
 ```
 
 #### 记录管理策略
 - **自动创建**：插件启动时自动创建当日记录文件
 - **模式区分**：正常模式和默写模式分别记录
-- **去重机制**：每天每个单词只记录一次
-- **按需加载**：只在需要时读取记录文件
+- **详细记录**：每次练习都记录单词的详细信息（单词、中文、音标、词典、时间）
+- **数组存储**：使用数组存储每日练习的单词记录，而不是按词典和章节分类
+
+#### 记录数据结构
+``json
+{
+  "date": "2025-08-26",
+  "words": [
+    {
+      "word": "remote",
+      "translation": "远程的 (adj.), 遥控器 (noun)",
+      "usphone": "/rɪˈmot/",
+      "ukphone": "/rɪˈməʊt/",
+      "dictId": "hongbaoshu-2026",
+      "dictName": "红宝书2026",
+      "chapterNumber": 1,
+      "practiceTime": "2025-08-26T10:30:00.000Z"
+    }
+  ]
+}
+```
 
 ### 4. 数据映射机制
 ```

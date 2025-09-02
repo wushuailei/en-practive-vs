@@ -99,21 +99,23 @@ export class DayAnalysisManager {
             
             // 收集所有词典
             const allDicts: Set<string> = new Set();
-            if (normalRecord) {
-                Object.keys(normalRecord.dicts).forEach(dictId => allDicts.add(dictId));
+            
+            // 从处理后的数据中收集词典信息
+            if (analysisData.normalMode) {
+                Object.keys(analysisData.normalMode.dicts).forEach(dictId => allDicts.add(dictId));
             }
-            if (dictationRecord) {
-                Object.keys(dictationRecord.dicts).forEach(dictId => allDicts.add(dictId));
+            if (analysisData.dictationMode) {
+                Object.keys(analysisData.dictationMode.dicts).forEach(dictId => allDicts.add(dictId));
             }
 
             // 为每个词典收集详细信息
             for (const dictId of Array.from(allDicts)) {
                 // 获取词典名称
                 let dictName = 'Unknown';
-                if (normalRecord && normalRecord.dicts[dictId]) {
-                    dictName = normalRecord.dicts[dictId].dictName;
-                } else if (dictationRecord && dictationRecord.dicts[dictId]) {
-                    dictName = dictationRecord.dicts[dictId].dictName;
+                if (analysisData.normalMode && analysisData.normalMode.dicts[dictId]) {
+                    dictName = analysisData.normalMode.dicts[dictId].dictName;
+                } else if (analysisData.dictationMode && analysisData.dictationMode.dicts[dictId]) {
+                    dictName = analysisData.dictationMode.dicts[dictId].dictName;
                 }
 
                 const dictDetails = await this.getDictDetails(dictId);
@@ -126,19 +128,19 @@ export class DayAnalysisManager {
                 };
 
                 // 统计正常模式数据
-                if (normalRecord && normalRecord.dicts[dictId]) {
-                    const normalDict = normalRecord.dicts[dictId];
+                if (analysisData.normalMode && analysisData.normalMode.dicts[dictId]) {
+                    const normalDict = analysisData.normalMode.dicts[dictId];
                     dictInfo.normalMode.chapters = Object.keys(normalDict.chapters).length;
                     dictInfo.normalMode.words = Object.values(normalDict.chapters)
-                        .reduce((sum, chapter) => sum + chapter.words.length, 0);
+                        .reduce((sum: number, chapter: any) => sum + chapter.wordCount, 0);
                 }
 
                 // 统计默写模式数据
-                if (dictationRecord && dictationRecord.dicts[dictId]) {
-                    const dictationDict = dictationRecord.dicts[dictId];
+                if (analysisData.dictationMode && analysisData.dictationMode.dicts[dictId]) {
+                    const dictationDict = analysisData.dictationMode.dicts[dictId];
                     dictInfo.dictationMode.chapters = Object.keys(dictationDict.chapters).length;
                     dictInfo.dictationMode.words = Object.values(dictationDict.chapters)
-                        .reduce((sum, chapter) => sum + chapter.words.length, 0);
+                        .reduce((sum: number, chapter: any) => sum + chapter.wordCount, 0);
                 }
 
                 dictSummary[dictId] = dictInfo;
@@ -171,28 +173,57 @@ export class DayAnalysisManager {
             dicts: {}
         };
 
-        // 为每个词典获取详细信息
-        for (const dictId in record.dicts) {
-            const dict = record.dicts[dictId];
-            processed.dicts[dictId] = {
-                dictId: dict.dictId,
-                dictName: dict.dictName,
-                chapters: {}
-            };
+        // 根据每日记录中的单词构建词典和章节信息
+        for (const wordRecord of record.words) {
+            const dictId = wordRecord.dictId;
+            const chapterNum = wordRecord.chapterNumber.toString();
+            
+            // 初始化词典信息
+            if (!processed.dicts[dictId]) {
+                processed.dicts[dictId] = {
+                    dictId: dictId,
+                    dictName: wordRecord.dictName,
+                    chapters: {}
+                };
+            }
+            
+            // 初始化章节信息
+            if (!processed.dicts[dictId].chapters[chapterNum]) {
+                processed.dicts[dictId].chapters[chapterNum] = {
+                    chapterNumber: wordRecord.chapterNumber,
+                    wordCount: 0,
+                    words: []
+                };
+            }
+            
+            // 添加单词到章节中
+            processed.dicts[dictId].chapters[chapterNum].wordCount++;
+            processed.dicts[dictId].chapters[chapterNum].words.push({
+                word: wordRecord.word,
+                practiceCount: 0,
+                correctCount: 0,
+                errorCount: 0,
+                correctRate: 0,
+                lastPracticeTime: wordRecord.practiceTime
+            });
+        }
 
-            // 为每个章节获取详细信息
+        // 获取每个单词的详细练习统计数据
+        for (const dictId in processed.dicts) {
+            const dict = processed.dicts[dictId];
+            
             for (const chapterNum in dict.chapters) {
                 const chapter = dict.chapters[chapterNum];
                 
                 // 获取章节的详细练习数据
                 const chapterRecord = await this.shardedRecordManager.loadChapterRecord(dictId, parseInt(chapterNum), practiceMode);
                 
-                // 构建包含详细统计数据的章节信息
-                const wordsWithStats = chapter.words.map(wordName => {
-                    const wordRecord = chapterRecord.wordRecords[wordName];
+                // 更新单词的详细统计数据
+                chapter.words = chapter.words.map((wordInfo: any) => {
+                    const wordRecord = chapterRecord.wordRecords[wordInfo.word];
                     if (wordRecord) {
                         return {
-                            word: wordName,
+                            word: wordInfo.word,
                             practiceCount: wordRecord.practiceCount,
                             correctCount: wordRecord.correctCount,
                             errorCount: wordRecord.errorCount,
@@ -202,89 +233,20 @@ export class DayAnalysisManager {
                     } else {
                         // 如果没有找到单词记录，返回默认值
                         return {
-                            word: wordName,
+                            word: wordInfo.word,
                             practiceCount: 0,
                             correctCount: 0,
                             errorCount: 0,
                             correctRate: 0,
-                            lastPracticeTime: '从未练习'
+                            lastPracticeTime: wordInfo.lastPracticeTime
                         };
                     }
                 });
-                
-                processed.dicts[dictId].chapters[chapterNum] = {
-                    chapterNumber: chapter.chapterNumber,
-                    wordCount: chapter.words.length,
-                    words: wordsWithStats
-                };
             }
         }
 
         return processed;
     }
 
-    // 检查并生成缺失的分析报告
-    async checkAndGenerateMissingAnalysis(totalRecords: { date: string; analysisGenerated: boolean }[], dayRecordManager: any): Promise<void> {
-        const today = new Date().toISOString().split('T')[0];
-        
-        // 按日期排序，最新的在前
-        const sortedRecords = [...totalRecords].sort((a, b) => b.date.localeCompare(a.date));
-        
-        // 寻找第一个需要生成分析报告且有数据的记录
-        for (const record of sortedRecords) {
-            // 跳过今天的记录
-            if (record.date >= today) {
-                continue;
-            }
-            
-            // 检查是否需要生成分析报告且该日期有练习数据
-            if (!record.analysisGenerated && await this.hasPracticeData(record.date)) {
-                await this.generateAnalysis(record.date, dayRecordManager);
-                break; // 只处理一条记录
-            }
-        }
-    }
-    
-    // 检查指定日期是否有练习数据
-    private async hasPracticeData(date: string): Promise<boolean> {
-        try {
-            // 获取正常模式和默写模式的记录
-            const normalRecord = await this.readDayRecord(date, 'normal');
-            const dictationRecord = await this.readDayRecord(date, 'dictation');
-            
-            // 检查是否有任何词典包含章节数据
-            if (normalRecord && normalRecord.dicts) {
-                for (const dictId in normalRecord.dicts) {
-                    const dict = normalRecord.dicts[dictId];
-                    if (dict.chapters) {
-                        for (const chapterNum in dict.chapters) {
-                            const chapter = dict.chapters[chapterNum];
-                            if (chapter.words && chapter.words.length > 0) {
-                                return true; // 找到有数据的记录
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (dictationRecord && dictationRecord.dicts) {
-                for (const dictId in dictationRecord.dicts) {
-                    const dict = dictationRecord.dicts[dictId];
-                    if (dict.chapters) {
-                        for (const chapterNum in dict.chapters) {
-                            const chapter = dict.chapters[chapterNum];
-                            if (chapter.words && chapter.words.length > 0) {
-                                return true; // 找到有数据的记录
-                            }
-                        }
-                    }
-                }
-            }
-            
-            return false; // 没有找到有数据的记录
-        } catch (error) {
-            console.error(`检查日期 ${date} 是否有练习数据时出错:`, error);
-            return false; // 出错时假设没有数据
-        }
-    }
+    // 移除了 checkAndGenerateMissingAnalysis 方法，该方法用于自动检查和生成缺失的分析报告
 }

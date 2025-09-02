@@ -68,13 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.error('创建每日记录文件(默写模式)失败:', error);
     });
     
-    // 在插件激活时检查并生成缺失的分析报告
-    dayRecordManager.getTotalRecords().then(async (totalRecords) => {
-        await dayAnalysisManager.checkAndGenerateMissingAnalysis(totalRecords, dayRecordManager);
-    }).catch(error => {
-        console.error('检查缺失分析报告失败:', error);
-    });
-
+    // 移除了插件激活时检查并生成缺失的分析报告的逻辑
 
     context.subscriptions.push(
         openSettingsCommand, 

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { DayRecord, DayDictRecord, DayChapterRecord, PracticeMode } from './types';
+import { DayRecord, DayWordRecord, PracticeMode, WordData } from './types';
+import { loadWordBookData } from './wordbooks';
 
 /**
  * 每日记录管理器
@@ -41,7 +42,7 @@ export class DayRecordManager {
                 // 创建空记录
                 const emptyRecord: DayRecord = {
                     date: currentDate,
-                    dicts: {}
+                    words: []
                 };
                 
                 await this.context.globalState.update(recordKey, emptyRecord);
@@ -85,8 +86,14 @@ export class DayRecordManager {
         }
     }
 
-    // 记录单词练习（每天每个单词只记录一次）
-    async recordWordPractice(dictId: string, dictName: string, chapterNumber: number, word: string, practiceMode: PracticeMode = 'normal'): Promise<void> {
+    // 记录单词练习（每次练习都记录）
+    async recordWordPractice(
+        dictId: string, 
+        dictName: string, 
+        chapterNumber: number, 
+        word: string, 
+        practiceMode: PracticeMode = 'normal'
+    ): Promise<void> {
         try {
             const currentDate = this.getCurrentDate();
             const recordKey = this.getDayRecordKey(currentDate, practiceMode);
@@ -97,42 +104,67 @@ export class DayRecordManager {
                 // 如果记录不存在，创建新的记录
                 dayRecord = {
                     date: currentDate,
-                    dicts: {}
-                };
-            }
-            
-            // 确保词典记录存在
-            if (!dayRecord.dicts[dictId]) {
-                dayRecord.dicts[dictId] = {
-                    dictId,
-                    dictName,
-                    chapters: {}
-                };
-            }
-            
-            const dictRecord = dayRecord.dicts[dictId];
-            
-            // 确保章节记录存在
-            const chapterKey = chapterNumber.toString();
-            if (!dictRecord.chapters[chapterKey]) {
-                dictRecord.chapters[chapterKey] = {
-                    chapterNumber,
                     words: []
                 };
             }
             
-            const chapterRecord = dictRecord.chapters[chapterKey];
+            // 获取单词的详细信息
+            const wordDetails = await this.getWordDetails(dictId, chapterNumber, word);
             
-            // 检查单词是否已记录（避免重复记录）
-            if (!chapterRecord.words.includes(word)) {
-                chapterRecord.words.push(word);
-                
-                // 保存更新后的记录
-                await this.context.globalState.update(recordKey, dayRecord);
-            }
+            // 创建单词记录
+            const wordRecord: DayWordRecord = {
+                word: word,
+                translation: wordDetails.translation,
+                usphone: wordDetails.usphone,
+                ukphone: wordDetails.ukphone,
+                dictId: dictId,
+                dictName: dictName,
+                chapterNumber: chapterNumber,
+                practiceTime: new Date().toISOString()
+            };
+            
+            // 添加到记录数组中
+            dayRecord.words.push(wordRecord);
+            
+            // 保存更新后的记录
+            await this.context.globalState.update(recordKey, dayRecord);
         } catch (error) {
             console.error('记录每日单词练习失败:', error);
         }
+    }
+
+    // 获取单词的详细信息
+    private async getWordDetails(dictId: string, chapterNumber: number, word: string): Promise<{ translation: string; usphone: string; ukphone: string }> {
+        try {
+            // 加载词书数据
+            const wordBookData = await loadWordBookData(this.context, dictId);
+            
+            // 查找单词数据
+            const wordData = wordBookData.find(w => w.name === word);
+            
+            if (wordData) {
+                // 合并翻译数组为字符串
+                const translation = wordData.trans.join('; ');
+                // 获取美式和英式音标
+                const usphone = wordData.usphone || '';
+                const ukphone = wordData.ukphone || '';
+                
+                return {
+                    translation: translation,
+                    usphone: usphone,
+                    ukphone: ukphone
+                };
+            }
+        } catch (error) {
+            console.error('获取单词详细信息失败:', error);
+        }
+        
+        // 返回默认值
+        return {
+            translation: '未知',
+            usphone: '',
+            ukphone: ''
+        };
     }
 
     // 获取指定日期的记录

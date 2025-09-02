@@ -20,7 +20,7 @@
 每日记录数据是分析报告的核心数据来源，存储在 VS Code 的 globalState 中：
 - 正常模式记录存储在 `enpractice.dayRecords.YYYY-MM-DD` 键下
 - 默写模式记录存储在 `enpractice.dayRecords.YYYY-MM-DD_dictation` 键下
-- 数据结构遵循 DayRecord 接口定义，包含日期、词典、章节和单词练习信息
+- 数据结构遵循 DayRecord 接口定义，包含日期和单词练习记录数组，每个记录包含单词、中文、音标、词典和时间等详细信息
 
 ### 3.2 词典信息
 词典信息用于获取词典的详细信息，包括词典名称和单词总数：
