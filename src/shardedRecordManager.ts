@@ -182,7 +182,8 @@ export class ShardedRecordManager {
             
             // 记录每日练习（每天每个单词只记录一次）
             if (dictName) {
-                await this.dayRecordManager.recordWordPractice(dictId, dictName, chapterNumber, word, practiceMode);
+                // 传递练习结果到每日记录管理器
+                await this.dayRecordManager.recordWordPractice(dictId, dictName, chapterNumber, word, isCorrect, practiceMode);
             }
         } catch (error) {
             console.error('记录单词练习失败:', error);

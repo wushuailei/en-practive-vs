@@ -92,6 +92,7 @@ export class DayRecordManager {
         dictName: string, 
         chapterNumber: number, 
         word: string, 
+        isCorrect: boolean,  // 添加练习结果参数
         practiceMode: PracticeMode = 'normal'
     ): Promise<void> {
         try {
@@ -120,7 +121,8 @@ export class DayRecordManager {
                 dictId: dictId,
                 dictName: dictName,
                 chapterNumber: chapterNumber,
-                practiceTime: new Date().toISOString()
+                practiceTime: new Date().toISOString(),
+                isCorrect: isCorrect  // 记录练习结果
             };
             
             // 添加到记录数组中

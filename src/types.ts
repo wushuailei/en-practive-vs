@@ -90,6 +90,7 @@ export interface DayWordRecord {
     dictName: string;       // 词典名称
     chapterNumber: number;  // 章节号
     practiceTime: string;   // 练习时间
+    isCorrect: boolean;     // 练习结果：true表示正确，false表示错误
 }
 
 // 每日记录文件接口（修改为使用数组存储单词记录）

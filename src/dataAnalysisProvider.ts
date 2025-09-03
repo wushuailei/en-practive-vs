@@ -63,7 +63,7 @@ export class DataAnalysisProvider {
                 .map((record: any) => record.date)
                 .sort((a: string, b: string) => b.localeCompare(a)); // 降序排列，最新的在前
 
-            this.panel.webview.postMessage({
+                this.panel.webview.postMessage({
                 type: 'dateList',
                 dates: dates
             });
@@ -77,6 +77,7 @@ export class DataAnalysisProvider {
         if (!this.panel) return;
 
         try {
+            
             // 直接从每日记录获取数据，而不是从快照数据获取
             const normalRecord = await this.dayRecordManager.getDayRecord(date, 'normal');
             const dictationRecord = await this.dayRecordManager.getDayRecord(date, 'dictation');
@@ -201,6 +202,8 @@ export class DataAnalysisProvider {
                     border: 1px solid var(--vscode-widget-border);
                     border-radius: 4px;
                     padding: 15px;
+                    margin-bottom: 20px;
+                    overflow-x: auto;
                 }
                 
                 .words-header {
@@ -213,41 +216,59 @@ export class DataAnalysisProvider {
                     align-items: center;
                 }
                 
-                .words-list {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                    gap: 10px;
-                }
-                
-                .word-item {
-                    background-color: var(--vscode-input-background);
-                    border: 1px solid var(--vscode-input-border);
-                    border-radius: 4px;
-                    padding: 8px;
+                .words-table {
+                    width: 100%;
+                    border-collapse: collapse;
                     font-size: 13px;
                 }
                 
-                .word-name {
+                .words-table th {
+                    background-color: var(--vscode-editor-widget-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    padding: 8px 12px;
+                    text-align: left;
                     font-weight: bold;
                     color: var(--vscode-foreground);
-                    margin-bottom: 4px;
+                    cursor: pointer;
+                    user-select: none;
                 }
                 
-                .word-dict {
-                    font-size: 11px;
-                    color: var(--vscode-descriptionForeground);
-                    margin-bottom: 2px;
+                .words-table th:hover {
+                    background-color: var(--vscode-list-hoverBackground);
                 }
                 
-                .word-chapter {
-                    font-size: 11px;
-                    color: var(--vscode-descriptionForeground);
-                    margin-bottom: 4px;
+                .words-table td {
+                    border: 1px solid var(--vscode-widget-border);
+                    padding: 8px 12px;
+                    background-color: var(--vscode-input-background);
                 }
                 
-                .word-stats {
-                    font-size: 11px;
-                    color: var(--vscode-descriptionForeground);
+                .words-table tr:hover td {
+                    background-color: var(--vscode-list-hoverBackground);
+                }
+                
+                .correct-count {
+                    color: var(--vscode-charts-green);
+                }
+                
+                .error-count {
+                    color: var(--vscode-charts-red);
+                }
+                
+                .correct-rate {
+                    font-weight: bold;
+                }
+                
+                .correct-rate.high {
+                    color: var(--vscode-charts-green);
+                }
+                
+                .correct-rate.medium {
+                    color: var(--vscode-charts-yellow);
+                }
+                
+                .correct-rate.low {
+                    color: var(--vscode-charts-red);
                 }
                 
                 .empty-state {
@@ -281,6 +302,83 @@ export class DataAnalysisProvider {
                     text-align: center;
                     padding: 20px;
                     color: var(--vscode-descriptionForeground);
+                }
+                
+                .dict-summary {
+                    background-color: var(--vscode-editor-widget-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+                
+                .dict-summary-header {
+                    font-size: 14px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                    color: var(--vscode-foreground);
+                }
+                
+                .dict-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid var(--vscode-widget-border);
+                }
+                
+                .dict-item:last-child {
+                    border-bottom: none;
+                }
+                
+                .dict-name {
+                    font-weight: bold;
+                }
+                
+                .dict-stats {
+                    display: flex;
+                    gap: 15px;
+                }
+                
+                .dict-stat-item {
+                    font-size: 12px;
+                    color: var(--vscode-descriptionForeground);
+                }
+                
+                .filter-container {
+                    margin-bottom: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                
+                .filter-container label {
+                    font-size: 13px;
+                    color: var(--vscode-foreground);
+                }
+                
+                .filter-container select {
+                    background-color: var(--vscode-dropdown-background);
+                    color: var(--vscode-dropdown-foreground);
+                    border: 1px solid var(--vscode-dropdown-border);
+                    padding: 4px 8px;
+                    border-radius: 2px;
+                    font-size: 13px;
+                    min-width: 120px;
+                }
+                
+                .words-table th {
+                    background-color: var(--vscode-editor-widget-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    padding: 8px 12px;
+                    text-align: left;
+                    font-weight: bold;
+                    color: var(--vscode-foreground);
+                    cursor: pointer;
+                    user-select: none;
+                }
+                
+                .words-table th:hover {
+                    background-color: var(--vscode-list-hoverBackground);
                 }
             </style>
         </head>
@@ -353,6 +451,13 @@ export class DataAnalysisProvider {
                     switch (message.type) {
                         case 'dateList':
                             updateDateSelector(message.dates);
+                            // 自动选择最新日期并加载数据
+                            if (message.dates && message.dates.length > 0) {
+                                const latestDate = message.dates[0];
+                                selectedDate = latestDate;
+                                document.getElementById('dateSelector').value = latestDate;
+                                vscode.postMessage({ type: 'requestDateData', date: latestDate });
+                            }
                             break;
                         case 'dateData':
                             currentData = message.data;
@@ -380,7 +485,7 @@ export class DataAnalysisProvider {
                         content.innerHTML = '<div class="empty-state">暂无数据</div>';
                         return;
                     }
-                    
+
                     // 根据当前模式过滤数据
                     let normalWords = data.modes.normal.words || [];
                     let dictationWords = data.modes.dictation.words || [];
@@ -400,62 +505,373 @@ export class DataAnalysisProvider {
                     }
                     
                     // 构建统计信息
-                    const statsHtml = \`
-                        <div class="stats-container">
-                            <div class="stat-card">
-                                <div class="stat-title">今日练习单词数</div>
-                                <div class="stat-value">\${displayWords.length}</div>
-                                <div class="stat-detail">正常模式: \${normalWords.length} | 默写模式: \${dictationWords.length}</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-title">词典数量</div>
-                                <div class="stat-value">\${displayWords.length > 0 ? new Set(displayWords.map(w => w.dictId)).size : 0}</div>
-                                <div class="stat-detail">不同词典的练习记录</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-title">章节数量</div>
-                                <div class="stat-value">\${displayWords.length > 0 ? new Set(displayWords.map(w => \`\${w.dictId}-\${w.chapterNumber}\`)).size : 0}</div>
-                                <div class="stat-detail">不同章节的练习记录</div>
-                            </div>
-                        </div>
-                    \`;
+                    const statsHtml = 
+                        '<div class="stats-container">' +
+                            '<div class="stat-card">' +
+                                '<div class="stat-title">今日练习单词数</div>' +
+                                '<div class="stat-value">' + displayWords.length + '</div>' +
+                                '<div class="stat-detail">正常模式: ' + normalWords.length + ' | 默写模式: ' + dictationWords.length + '</div>' +
+                            '</div>' +
+                            '<div class="stat-card">' +
+                                '<div class="stat-title">词典数量</div>' +
+                                '<div class="stat-value">' + (displayWords.length > 0 ? new Set(displayWords.map(w => w.dictId)).size : 0) + '</div>' +
+                                '<div class="stat-detail">不同词典的练习记录</div>' +
+                            '</div>' +
+                        '</div>';
                     
-                    // 构建单词列表
-                    let wordsHtml = '';
-                    if (displayWords.length > 0) {
-                        wordsHtml = \`
-                            <div class="words-container">
-                                <div class="words-header">
-                                    <span>今日练习单词</span>
-                                    <span>\${displayWords.length} 个单词</span>
-                                </div>
-                                <div class="words-list">
-                                    \${displayWords.map(word => \`
-                                        <div class="word-item">
-                                            <div class="word-name">\${word.word}</div>
-                                            <div class="word-dict">\${word.dictName}</div>
-                                            <div class="word-chapter">章节 \${word.chapterNumber}</div>
-                                            <div class="word-stats">练习时间: \${formatTime(word.practiceTime)}</div>
-                                        </div>
-                                    \`).join('')}
-                                </div>
-                            </div>
-                        \`;
-                    } else {
-                        wordsHtml = '<div class="empty-state">今日暂无练习记录</div>';
+                    // 构建词典统计信息
+                    const dictSummaryHtml = generateDictSummary(displayWords, data);
+                    
+                    // 生成表格形式的单词统计
+                    const wordsTableHtml = generateWordsTable(displayWords, data);
+                    
+                    content.innerHTML = statsHtml + dictSummaryHtml + wordsTableHtml;
+                }
+                
+                // 生成词典统计摘要
+                function generateDictSummary(words, allData) {
+                    if (words.length === 0) {
+                        return '';
                     }
                     
-                    content.innerHTML = statsHtml + wordsHtml;
+                    // 从所有数据中获取词典统计信息
+                    const dictStats = getDictStatistics(allData);
+                    
+                    // 转换为数组并按词典名称排序
+                    const dictList = Object.entries(dictStats).map(([dictId, stats]) => ({
+                        dictId,
+                        dictName: stats.dictName,
+                        practiceCount: stats.practiceCount,
+                        correctCount: stats.correctCount,
+                        errorCount: stats.errorCount,
+                        correctRate: stats.correctRate,
+                        completionCount: stats.completionCount
+                    }));
+                    
+                    // 按词典名称排序
+                    dictList.sort((a, b) => a.dictName.localeCompare(b.dictName));
+                    
+                    // 生成HTML
+                    let dictItemsHtml = '';
+                    dictList.forEach(dict => {
+                        // 计算正确率显示
+                        const correctRateDisplay = dict.practiceCount > 0 ? 
+                            (dict.correctRate.toFixed(1) + '%') : '0%';
+                        
+                        dictItemsHtml += 
+                        '<div class="dict-item">' +
+                            '<span class="dict-name">' + dict.dictName + '</span>' +
+                            '<div class="dict-stats">' +
+                                '<span class="dict-stat-item">练习: ' + dict.practiceCount + '</span>' +
+                                '<span class="dict-stat-item">正确: ' + dict.correctCount + '</span>' +
+                                '<span class="dict-stat-item">错误: ' + dict.errorCount + '</span>' +
+                                '<span class="dict-stat-item">正确率: ' + correctRateDisplay + '</span>' +
+                                '<span class="dict-stat-item">完成: ' + dict.completionCount + '</span>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                    
+                    return '<div class="dict-summary">' +
+                            '<div class="dict-summary-header">词典统计</div>' +
+                            dictItemsHtml +
+                        '</div>';
+                }
+                
+                // 从所有数据中获取词典统计信息
+                function getDictStatistics(allData) {
+                    const dictStats = {};
+                    
+                    // 处理正常模式数据
+                    if (allData.modes.normal.words) {
+                        processDictsForStats(allData.modes.normal.words, dictStats);
+                    }
+                    
+                    // 处理默写模式数据
+                    if (allData.modes.dictation.words) {
+                        processDictsForStats(allData.modes.dictation.words, dictStats);
+                    }
+                    
+                    // 计算每个词典的正确率和完成次数
+                    Object.keys(dictStats).forEach(dictId => {
+                        const stats = dictStats[dictId];
+                        if (stats.practiceCount > 0) {
+                            stats.correctRate = (stats.correctCount / stats.practiceCount) * 100;
+                        } else {
+                            stats.correctRate = 0;
+                        }
+                        
+                        // 完成次数取所有单词中正确次数的最小值
+                        if (stats.wordCorrectCounts.length > 0) {
+                            stats.completionCount = Math.min(...stats.wordCorrectCounts);
+                        } else {
+                            stats.completionCount = 0;
+                        }
+                    });
+                    
+                    return dictStats;
+                }
+                
+                // 处理词典数据以生成统计信息
+                function processDictsForStats(words, dictStats) {
+                    // 首先按词典和单词分组统计
+                    const wordStats = {};
+                    words.forEach(word => {
+                        const dictKey = word.dictId;
+                        const wordKey = dictKey + '-' + word.word;
+                        
+                        // 初始化词典统计
+                        if (!dictStats[dictKey]) {
+                            dictStats[dictKey] = {
+                                dictName: word.dictName,
+                                practiceCount: 0,
+                                correctCount: 0,
+                                errorCount: 0,
+                                correctRate: 0,
+                                completionCount: 0,
+                                wordCorrectCounts: [] // 用于计算完成次数
+                            };
+                        }
+                        
+                        // 初始化单词统计
+                        if (!wordStats[wordKey]) {
+                            wordStats[wordKey] = {
+                                practiceCount: 0,
+                                correctCount: 0,
+                                errorCount: 0
+                            };
+                        }
+                        
+                        // 累计单词练习数据
+                        wordStats[wordKey].practiceCount++;
+                        if (word.isCorrect) {
+                            wordStats[wordKey].correctCount++;
+                        } else {
+                            wordStats[wordKey].errorCount++;
+                        }
+                    });
+
+                    // 累计词典统计数据
+                    Object.keys(wordStats).forEach(wordKey => {
+                        const dictId = wordKey.split('-').slice(0, -1).join('-');
+                        const stats = wordStats[wordKey];
+                        if (dictStats[dictId]) {
+                            dictStats[dictId].practiceCount += stats.practiceCount;
+                            dictStats[dictId].correctCount += stats.correctCount;
+                            dictStats[dictId].errorCount += stats.errorCount;
+                            dictStats[dictId].wordCorrectCounts.push(stats.correctCount);
+                        }
+                    });
+                }
+                
+                // 生成表格形式的单词统计
+                function generateWordsTable(words, allData) {
+                    if (words.length === 0) {
+                        return '<div class="empty-state">今日暂无练习记录</div>';
+                    }
+                    
+                    // 从所有数据中获取单词统计信息
+                    const wordStats = getWordStatistics(allData);
+                    
+                    // 获取所有词典列表用于筛选
+                    const dictList = [...new Set(words.map(w => w.dictId))].map(dictId => {
+                        const word = words.find(w => w.dictId === dictId);
+                        return { id: dictId, name: word ? word.dictName : dictId };
+                    });
+                    
+                    // 生成筛选器HTML
+                    let filterHtml = '<div class="filter-container">';
+                    filterHtml += '<label for="dictFilter">词典筛选: </label>';
+                    filterHtml += '<select id="dictFilter" onchange="filterTable()">';
+                    filterHtml += '<option value="all">全部词典</option>';
+                    dictList.forEach(dict => {
+                        filterHtml += '<option value="' + dict.id + '">' + dict.name + '</option>';
+                    });
+                    filterHtml += '</select>';
+                    filterHtml += '</div>';
+                    
+                    // 生成表格HTML
+                    let tableHtml = 
+                        '<div class="words-container">' +
+                            '<div class="words-header">' +
+                                '<span>单词练习统计</span>' +
+                                '<span>' + Object.keys(wordStats).length + ' 个不同单词</span>' +
+                            '</div>' +
+                            filterHtml +
+                            '<table class="words-table" id="wordsTable">' +
+                                '<thead>' +
+                                    '<tr>' +
+                                        '<th onclick="sortTable(0)">单词 ▼</th>' +
+                                        '<th onclick="sortTable(1)">词典 ▼</th>' +
+                                        '<th onclick="sortTable(2)">练习次数 ▼</th>' +
+                                        '<th onclick="sortTable(3)">正确次数 ▼</th>' +
+                                        '<th onclick="sortTable(4)">错误次数 ▼</th>' +
+                                        '<th onclick="sortTable(5)">正确率 ▼</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody id="wordsTableBody">';
+                    
+                    // 按单词名称排序
+                    const sortedWords = Object.entries(wordStats).sort((a, b) => a[0].localeCompare(b[0]));
+                    
+                    // 生成表格行
+                    sortedWords.forEach(([word, stats]) => {
+                        // 计算正确率类别
+                        let rateClass = 'low';
+                        if (stats.correctRate >= 80) {
+                            rateClass = 'high';
+                        } else if (stats.correctRate >= 60) {
+                            rateClass = 'medium';
+                        }
+                        
+                        // 获取词典信息
+                        const dictInfo = words.find(w => w.word === word);
+                        const dictName = dictInfo ? dictInfo.dictName : '未知';
+                        const dictId = dictInfo ? dictInfo.dictId : 'unknown';
+                        
+                        tableHtml += 
+                            '<tr data-dict="' + dictId + '">' +
+                                '<td>' + word + '</td>' +
+                                '<td>' + dictName + '</td>' +
+                                '<td>' + stats.practiceCount + '</td>' +
+                                '<td class="correct-count">' + stats.correctCount + '</td>' +
+                                '<td class="error-count">' + stats.errorCount + '</td>' +
+                                '<td class="correct-rate ' + rateClass + '">' + stats.correctRate.toFixed(1) + '%</td>' +
+                            '</tr>';
+                    });
+                    
+                    tableHtml += 
+                                '</tbody>' +
+                            '</table>' +
+                        '</div>';
+                    
+                    return tableHtml;
+                }
+                
+                // 从所有数据中获取单词统计信息
+                function getWordStatistics(allData) {
+                    const wordStats = {};
+                    
+                    // 处理正常模式数据
+                    if (allData.modes.normal.words) {
+                        processWordsForStats(allData.modes.normal.words, wordStats);
+                    }
+                    
+                    // 处理默写模式数据
+                    if (allData.modes.dictation.words) {
+                        processWordsForStats(allData.modes.dictation.words, wordStats);
+                    }
+                    
+                    // 计算每个单词的正确率
+                    Object.keys(wordStats).forEach(word => {
+                        const stats = wordStats[word];
+                        if (stats.practiceCount > 0) {
+                            stats.correctRate = (stats.correctCount / stats.practiceCount) * 100;
+                        }
+                    });
+                    
+                    return wordStats;
+                }
+                
+                // 处理单词数据以生成统计信息
+                function processWordsForStats(words, wordStats) {
+                    words.forEach(word => {
+                        if (!wordStats[word.word]) {
+                            wordStats[word.word] = {
+                                practiceCount: 0,
+                                correctCount: 0,
+                                errorCount: 0,
+                                correctRate: 0
+                            };
+                        }
+                        
+                        wordStats[word.word].practiceCount++;
+                        if (word.isCorrect) {
+                            wordStats[word.word].correctCount++;
+                        } else {
+                            wordStats[word.word].errorCount++;
+                        }
+                    });
                 }
                 
                 // 格式化时间显示
                 function formatTime(timeString) {
                     try {
                         const date = new Date(timeString);
-                        return \`\${date.getMonth() + 1}-\${date.getDate()} \${date.getHours().toString().padStart(2, '0')}:\${date.getMinutes().toString().padStart(2, '0')}\`;
+                        return (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                     } catch (error) {
                         return '未知时间';
                     }
+                }
+                
+                // 筛选表格
+                function filterTable() {
+                    const filter = document.getElementById('dictFilter').value;
+                    const table = document.getElementById('wordsTable');
+                    const tr = table.getElementsByTagName('tr');
+                    
+                    for (let i = 1; i < tr.length; i++) {
+                        const dictId = tr[i].getAttribute('data-dict');
+                        if (filter === 'all' || dictId === filter) {
+                            tr[i].style.display = '';
+                        } else {
+                            tr[i].style.display = 'none';
+                        }
+                    }
+                }
+                
+                // 排序表格
+                let sortDirections = [true, true, true, true, true, true]; // true表示升序，false表示降序
+                
+                function sortTable(columnIndex) {
+                    const table = document.getElementById('wordsTable');
+                    const tbody = table.getElementsByTagName('tbody')[0];
+                    const rows = Array.from(tbody.getElementsByTagName('tr'));
+                    
+                    // 切换排序方向
+                    sortDirections[columnIndex] = !sortDirections[columnIndex];
+                    const ascending = sortDirections[columnIndex];
+                    
+                    // 更新表头箭头
+                    const headers = table.getElementsByTagName('th');
+                    for (let i = 0; i < headers.length; i++) {
+                        const arrow = headers[i].textContent.includes('▲') || headers[i].textContent.includes('▼') ? 
+                            headers[i].textContent.slice(0, -2) : headers[i].textContent;
+                        headers[i].textContent = arrow + (i === columnIndex ? (ascending ? ' ▲' : ' ▼') : ' ▼');
+                    }
+                    
+                    // 排序行
+                    rows.sort((a, b) => {
+                        const aText = a.getElementsByTagName('td')[columnIndex].textContent;
+                        const bText = b.getElementsByTagName('td')[columnIndex].textContent;
+                        
+                        let aVal, bVal;
+                        
+                        // 根据列类型处理排序
+                        if (columnIndex === 0 || columnIndex === 1) {
+                            // 文本列
+                            aVal = aText;
+                            bVal = bText;
+                        } else if (columnIndex === 5) {
+                            // 正确率列，去掉%符号
+                            aVal = parseFloat(aText.replace('%', ''));
+                            bVal = parseFloat(bText.replace('%', ''));
+                        } else {
+                            // 数字列
+                            aVal = parseFloat(aText);
+                            bVal = parseFloat(bText);
+                        }
+                        
+                        if (aVal < bVal) {
+                            return ascending ? -1 : 1;
+                        }
+                        if (aVal > bVal) {
+                            return ascending ? 1 : -1;
+                        }
+                        return 0;
+                    });
+                    
+                    // 重新插入排序后的行
+                    rows.forEach(row => tbody.appendChild(row));
                 }
             </script>
         </body>

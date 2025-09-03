@@ -1013,11 +1013,12 @@ export class PracticeWebviewProvider implements vscode.WebviewViewProvider {
                 console.error('获取词典名称失败:', error);
             }
             
+            // 传递练习结果到记录管理器
             await this.recordManager.recordWordPractice(
                 this.currentDictId,
                 this.settings.currentChapter,
                 word,
-                isCorrect,
+                isCorrect,  // 传递练习结果
                 this.settings.practiceMode,
                 dictName // 传递词典名称
             );
