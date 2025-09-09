@@ -133,253 +133,277 @@ export class DataAnalysisProvider {
                 }
                 
                 .date-selector {
-                    flex: 1;
-                }
-                
-                select {
-                    background-color: var(--vscode-dropdown-background);
-                    color: var(--vscode-dropdown-foreground);
-                    border: 1px solid var(--vscode-dropdown-border);
-                    padding: 4px 8px;
-                    border-radius: 2px;
-                    min-width: 120px;
-                }
-                
-                .button {
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border: none;
-                    padding: 4px 12px;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    font-size: 13px;
-                }
-                
-                .button:hover {
-                    background-color: var(--vscode-button-hoverBackground);
-                }
-                
-                .button:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-                
-                .stats-container {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 20px;
-                    margin-bottom: 20px;
-                }
-                
-                .stat-card {
-                    background-color: var(--vscode-editor-widget-background);
-                    border: 1px solid var(--vscode-widget-border);
-                    border-radius: 4px;
-                    padding: 15px;
-                }
-                
-                .stat-title {
-                    font-size: 14px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    color: var(--vscode-foreground);
-                }
-                
-                .stat-value {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: var(--vscode-charts-green);
-                }
-                
-                .stat-detail {
-                    font-size: 12px;
-                    color: var(--vscode-descriptionForeground);
-                    margin-top: 5px;
-                }
-                
-                .words-container {
-                    background-color: var(--vscode-editor-widget-background);
-                    border: 1px solid var(--vscode-widget-border);
-                    border-radius: 4px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                    overflow-x: auto;
-                }
-                
-                .words-header {
-                    font-size: 14px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    color: var(--vscode-foreground);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                
-                .words-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 13px;
-                }
-                
-                .words-table th {
-                    background-color: var(--vscode-editor-widget-background);
-                    border: 1px solid var(--vscode-widget-border);
-                    padding: 8px 12px;
-                    text-align: left;
-                    font-weight: bold;
-                    color: var(--vscode-foreground);
-                    cursor: pointer;
-                    user-select: none;
-                }
-                
-                .words-table th:hover {
-                    background-color: var(--vscode-list-hoverBackground);
-                }
-                
-                .words-table td {
-                    border: 1px solid var(--vscode-widget-border);
-                    padding: 8px 12px;
-                    background-color: var(--vscode-input-background);
-                }
-                
-                .words-table tr:hover td {
-                    background-color: var(--vscode-list-hoverBackground);
-                }
-                
-                .correct-count {
-                    color: var(--vscode-charts-green);
-                }
-                
-                .error-count {
-                    color: var(--vscode-charts-red);
-                }
-                
-                .correct-rate {
-                    font-weight: bold;
-                }
-                
-                .correct-rate.high {
-                    color: var(--vscode-charts-green);
-                }
-                
-                .correct-rate.medium {
-                    color: var(--vscode-charts-yellow);
-                }
-                
-                .correct-rate.low {
-                    color: var(--vscode-charts-red);
-                }
-                
-                .empty-state {
-                    text-align: center;
-                    color: var(--vscode-descriptionForeground);
-                    padding: 40px 20px;
-                }
-                
-                .mode-tabs {
-                    display: flex;
-                    gap: 10px;
-                    margin-bottom: 15px;
-                }
-                
-                .mode-tab {
-                    background-color: var(--vscode-button-secondaryBackground);
-                    color: var(--vscode-button-secondaryForeground);
-                    border: none;
-                    padding: 6px 12px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 13px;
-                }
-                
-                .mode-tab.active {
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                }
-                
-                .loading {
-                    text-align: center;
-                    padding: 20px;
-                    color: var(--vscode-descriptionForeground);
-                }
-                
-                .dict-summary {
-                    background-color: var(--vscode-editor-widget-background);
-                    border: 1px solid var(--vscode-widget-border);
-                    border-radius: 4px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                }
-                
-                .dict-summary-header {
-                    font-size: 14px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    color: var(--vscode-foreground);
-                }
-                
-                .dict-item {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 8px 0;
-                    border-bottom: 1px solid var(--vscode-widget-border);
-                }
-                
-                .dict-item:last-child {
-                    border-bottom: none;
-                }
-                
-                .dict-name {
-                    font-weight: bold;
-                }
-                
-                .dict-stats {
-                    display: flex;
-                    gap: 15px;
-                }
-                
-                .dict-stat-item {
-                    font-size: 12px;
-                    color: var(--vscode-descriptionForeground);
-                }
-                
-                .filter-container {
-                    margin-bottom: 10px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-                
-                .filter-container label {
-                    font-size: 13px;
-                    color: var(--vscode-foreground);
-                }
-                
-                .filter-container select {
-                    background-color: var(--vscode-dropdown-background);
-                    color: var(--vscode-dropdown-foreground);
-                    border: 1px solid var(--vscode-dropdown-border);
-                    padding: 4px 8px;
-                    border-radius: 2px;
-                    font-size: 13px;
-                    min-width: 120px;
-                }
-                
-                .words-table th {
-                    background-color: var(--vscode-editor-widget-background);
-                    border: 1px solid var(--vscode-widget-border);
-                    padding: 8px 12px;
-                    text-align: left;
-                    font-weight: bold;
-                    color: var(--vscode-foreground);
-                    cursor: pointer;
-                    user-select: none;
-                }
-                
-                .words-table th:hover {
-                    background-color: var(--vscode-list-hoverBackground);
-                }
+                        flex: 1;
+                    }
+                    
+                    select {
+                        background-color: var(--vscode-dropdown-background);
+                        color: var(--vscode-dropdown-foreground);
+                        border: 1px solid var(--vscode-dropdown-border);
+                        padding: 4px 8px;
+                        border-radius: 2px;
+                        min-width: 120px;
+                    }
+                    
+                    .button {
+                        background-color: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                        border: none;
+                        padding: 4px 12px;
+                        border-radius: 2px;
+                        cursor: pointer;
+                        font-size: 13px;
+                    }
+                    
+                    .button:hover {
+                        background-color: var(--vscode-button-hoverBackground);
+                    }
+                    
+                    .button:disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+                    }
+                    
+                    .stats-container {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .stat-card {
+                        background-color: var(--vscode-editor-widget-background);
+                        border: 1px solid var(--vscode-widget-border);
+                        border-radius: 4px;
+                        padding: 15px;
+                    }
+                    
+                    .stat-title {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: var(--vscode-foreground);
+                    }
+                    
+                    .stat-value {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: var(--vscode-charts-green);
+                    }
+                    
+                    .stat-detail {
+                        font-size: 12px;
+                        color: var(--vscode-descriptionForeground);
+                        margin-top: 5px;
+                    }
+                    
+                    .words-container {
+                        background-color: var(--vscode-editor-widget-background);
+                        border: 1px solid var(--vscode-widget-border);
+                        border-radius: 4px;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        overflow-x: auto;
+                    }
+                    
+                    .words-header {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: var(--vscode-foreground);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    
+                    .words-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 13px;
+                    }
+                    
+                    .words-table th {
+                        background-color: var(--vscode-editor-widget-background);
+                        border: 1px solid var(--vscode-widget-border);
+                        padding: 8px 12px;
+                        text-align: left;
+                        font-weight: bold;
+                        color: var(--vscode-foreground);
+                        cursor: pointer;
+                        user-select: none;
+                    }
+                    
+                    .words-table th:hover {
+                        background-color: var(--vscode-list-hoverBackground);
+                    }
+                    
+                    .words-table td {
+                        border: 1px solid var(--vscode-widget-border);
+                        padding: 8px 12px;
+                        background-color: var(--vscode-input-background);
+                    }
+                    
+                    .words-table tr:hover td {
+                        background-color: var(--vscode-list-hoverBackground);
+                    }
+                    
+                    .correct-count {
+                        color: var(--vscode-charts-green);
+                    }
+                    
+                    .error-count {
+                        color: var(--vscode-charts-red);
+                    }
+                    
+                    .correct-rate {
+                        font-weight: bold;
+                    }
+                    
+                    .correct-rate.high {
+                        color: var(--vscode-charts-green);
+                    }
+                    
+                    .correct-rate.medium {
+                        color: var(--vscode-charts-yellow);
+                    }
+                    
+                    .correct-rate.low {
+                        color: var(--vscode-charts-red);
+                    }
+                    
+                    .empty-state {
+                        text-align: center;
+                        color: var(--vscode-descriptionForeground);
+                        padding: 40px 20px;
+                    }
+                    
+                    .mode-tabs {
+                        display: flex;
+                        gap: 10px;
+                        margin-bottom: 15px;
+                    }
+                    
+                    .mode-tab {
+                        background-color: var(--vscode-button-secondaryBackground);
+                        color: var(--vscode-button-secondaryForeground);
+                        border: none;
+                        padding: 6px 12px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 13px;
+                    }
+                    
+                    .mode-tab.active {
+                        background-color: var(--vscode-button-background);
+                        color: var(--vscode-button-foreground);
+                    }
+                    
+                    .loading {
+                        text-align: center;
+                        padding: 20px;
+                        color: var(--vscode-descriptionForeground);
+                    }
+                    
+                    .dict-summary {
+                        background-color: var(--vscode-editor-widget-background);
+                        border: 1px solid var(--vscode-widget-border);
+                        border-radius: 4px;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .dict-summary-header {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin-bottom: 10px;
+                        color: var(--vscode-foreground);
+                    }
+                    
+                    .dict-item {
+                        padding: 12px 0;
+                        border-bottom: 1px solid var(--vscode-widget-border);
+                    }
+                    
+                    .dict-item:last-child {
+                        border-bottom: none;
+                    }
+                    
+                    .dict-header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 8px;
+                    }
+                    
+                    .dict-name {
+                        font-weight: bold;
+                    }
+                    
+                    .dict-stats {
+                        display: flex;
+                        gap: 15px;
+                    }
+                    
+                    .dict-stat-item {
+                        font-size: 12px;
+                        color: var(--vscode-descriptionForeground);
+                    }
+                    
+                    .chapter-list {
+                        margin-left: 20px;
+                        padding: 8px 0;
+                        border-left: 2px solid var(--vscode-widget-border);
+                        padding-left: 10px;
+                    }
+                    
+                    .chapter-list-header {
+                        font-size: 12px;
+                        font-weight: bold;
+                        margin-bottom: 5px;
+                        color: var(--vscode-foreground);
+                    }
+                    
+                    .chapter-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 4px 0;
+                    }
+                    
+                    .chapter-number {
+                        font-size: 12px;
+                        color: var(--vscode-foreground);
+                    }
+                    
+                    .chapter-stats {
+                        display: flex;
+                        gap: 10px;
+                    }
+                    
+                    .chapter-stat-item {
+                        font-size: 11px;
+                        color: var(--vscode-descriptionForeground);
+                    }
+                    
+                    .filter-container {
+                        margin-bottom: 10px;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    
+                    .filter-container label {
+                        font-size: 13px;
+                        color: var(--vscode-foreground);
+                    }
+                    
+                    .filter-container select {
+                        background-color: var(--vscode-dropdown-background);
+                        color: var(--vscode-dropdown-foreground);
+                        border: 1px solid var(--vscode-dropdown-border);
+                        padding: 4px 8px;
+                        border-radius: 2px;
+                        font-size: 13px;
+                        min-width: 120px;
+                    }
             </style>
         </head>
         <body>
@@ -545,7 +569,8 @@ export class DataAnalysisProvider {
                         correctCount: stats.correctCount,
                         errorCount: stats.errorCount,
                         correctRate: stats.correctRate,
-                        completionCount: stats.completionCount
+                        completionCount: stats.completionCount,
+                        chapters: stats.chapters || {} // 添加章节信息
                     }));
                     
                     // 按词典名称排序
@@ -558,16 +583,47 @@ export class DataAnalysisProvider {
                         const correctRateDisplay = dict.practiceCount > 0 ? 
                             (dict.correctRate.toFixed(1) + '%') : '0%';
                         
+                        // 生成章节列表
+                        let chapterListHtml = '';
+                        const chapterNumbers = Object.keys(dict.chapters).sort((a, b) => parseInt(a) - parseInt(b));
+                        if (chapterNumbers.length > 0) {
+                            chapterListHtml += '<div class="chapter-list">';
+                            chapterListHtml += '<div class="chapter-list-header">章节统计:</div>';
+                            chapterNumbers.forEach(chapterNum => {
+                                const chapter = dict.chapters[chapterNum];
+                                const chapterRate = chapter.practiceCount > 0 ? 
+                                    ((chapter.correctCount / chapter.practiceCount) * 100).toFixed(1) + '%' : '0%';
+                                // 计算章节完成次数（所有单词正确次数中的最小值）
+                                const chapterCompletionCount = chapter.wordCorrectCounts && chapter.wordCorrectCounts.length > 0 ? 
+                                    Math.min(...chapter.wordCorrectCounts) : 0;
+                                chapterListHtml += 
+                                    '<div class="chapter-item">' +
+                                        '<span class="chapter-number">第' + chapterNum + '章</span>' +
+                                        '<div class="chapter-stats">' +
+                                            '<span class="chapter-stat-item">练习: ' + chapter.practiceCount + '</span>' +
+                                            '<span class="chapter-stat-item">正确: ' + chapter.correctCount + '</span>' +
+                                            '<span class="chapter-stat-item">错误: ' + chapter.errorCount + '</span>' +
+                                            '<span class="chapter-stat-item">正确率: ' + chapterRate + '</span>' +
+                                            '<span class="chapter-stat-item">完成: ' + chapterCompletionCount + '</span>' +
+                                        '</div>' +
+                                    '</div>';
+                            });
+                            chapterListHtml += '</div>';
+                        }
+                        
                         dictItemsHtml += 
                         '<div class="dict-item">' +
-                            '<span class="dict-name">' + dict.dictName + '</span>' +
-                            '<div class="dict-stats">' +
-                                '<span class="dict-stat-item">练习: ' + dict.practiceCount + '</span>' +
-                                '<span class="dict-stat-item">正确: ' + dict.correctCount + '</span>' +
-                                '<span class="dict-stat-item">错误: ' + dict.errorCount + '</span>' +
-                                '<span class="dict-stat-item">正确率: ' + correctRateDisplay + '</span>' +
-                                '<span class="dict-stat-item">完成: ' + dict.completionCount + '</span>' +
+                            '<div class="dict-header">' +
+                                '<span class="dict-name">' + dict.dictName + '</span>' +
+                                '<div class="dict-stats">' +
+                                    '<span class="dict-stat-item">练习: ' + dict.practiceCount + '</span>' +
+                                    '<span class="dict-stat-item">正确: ' + dict.correctCount + '</span>' +
+                                    '<span class="dict-stat-item">错误: ' + dict.errorCount + '</span>' +
+                                    '<span class="dict-stat-item">正确率: ' + correctRateDisplay + '</span>' +
+                                    '<span class="dict-stat-item">完成: ' + dict.completionCount + '</span>' +
+                                '</div>' +
                             '</div>' +
+                            chapterListHtml +
                         '</div>';
                     });
                     
@@ -581,14 +637,32 @@ export class DataAnalysisProvider {
                 function getDictStatistics(allData) {
                     const dictStats = {};
                     
-                    // 处理正常模式数据
-                    if (allData.modes.normal.words) {
-                        processDictsForStats(allData.modes.normal.words, dictStats);
-                    }
-                    
-                    // 处理默写模式数据
-                    if (allData.modes.dictation.words) {
-                        processDictsForStats(allData.modes.dictation.words, dictStats);
+                    // 根据当前模式处理数据
+                    switch (currentMode) {
+                        case 'normal':
+                            // 处理正常模式数据
+                            if (allData.modes.normal.words) {
+                                processDictsForStats(allData.modes.normal.words, dictStats);
+                            }
+                            break;
+                        case 'dictation':
+                            // 处理默写模式数据
+                            if (allData.modes.dictation.words) {
+                                processDictsForStats(allData.modes.dictation.words, dictStats);
+                            }
+                            break;
+                        case 'all':
+                        default:
+                            // 处理正常模式数据
+                            if (allData.modes.normal.words) {
+                                processDictsForStats(allData.modes.normal.words, dictStats);
+                            }
+                            
+                            // 处理默写模式数据
+                            if (allData.modes.dictation.words) {
+                                processDictsForStats(allData.modes.dictation.words, dictStats);
+                            }
+                            break;
                     }
                     
                     // 计算每个词典的正确率和完成次数
@@ -606,6 +680,24 @@ export class DataAnalysisProvider {
                         } else {
                             stats.completionCount = 0;
                         }
+                        
+                        // 计算每个章节的正确率和完成次数
+                        Object.keys(stats.chapters).forEach(chapterNum => {
+                            const chapter = stats.chapters[chapterNum];
+                            if (chapter.practiceCount > 0) {
+                                // 计算章节正确率
+                                chapter.correctRate = (chapter.correctCount / chapter.practiceCount) * 100;
+                            } else {
+                                chapter.correctRate = 0;
+                            }
+                            
+                            // 计算章节完成次数（该章节内所有单词正确次数中的最小值）
+                            if (chapter.wordCorrectCounts.length > 0) {
+                                chapter.completionCount = Math.min(...chapter.wordCorrectCounts);
+                            } else {
+                                chapter.completionCount = 0;
+                            }
+                        });
                     });
                     
                     return dictStats;
@@ -618,6 +710,7 @@ export class DataAnalysisProvider {
                     words.forEach(word => {
                         const dictKey = word.dictId;
                         const wordKey = dictKey + '-' + word.word;
+                        const chapterKey = word.chapterNumber.toString();
                         
                         // 初始化词典统计
                         if (!dictStats[dictKey]) {
@@ -628,7 +721,18 @@ export class DataAnalysisProvider {
                                 errorCount: 0,
                                 correctRate: 0,
                                 completionCount: 0,
-                                wordCorrectCounts: [] // 用于计算完成次数
+                                wordCorrectCounts: [], // 用于计算完成次数
+                                chapters: {} // 添加章节统计信息
+                            };
+                        }
+                        
+                        // 初始化章节统计
+                        if (!dictStats[dictKey].chapters[chapterKey]) {
+                            dictStats[dictKey].chapters[chapterKey] = {
+                                practiceCount: 0,
+                                correctCount: 0,
+                                errorCount: 0,
+                                wordCorrectCounts: {} // 用于计算章节完成次数，记录每个单词的正确次数
                             };
                         }
                         
@@ -648,6 +752,22 @@ export class DataAnalysisProvider {
                         } else {
                             wordStats[wordKey].errorCount++;
                         }
+                        
+                        // 累计章节练习数据
+                        dictStats[dictKey].chapters[chapterKey].practiceCount++;
+                        if (word.isCorrect) {
+                            dictStats[dictKey].chapters[chapterKey].correctCount++;
+                        } else {
+                            dictStats[dictKey].chapters[chapterKey].errorCount++;
+                        }
+                        
+                        // 记录每个单词的正确次数用于计算完成次数
+                        if (!dictStats[dictKey].chapters[chapterKey].wordCorrectCounts[word.word]) {
+                            dictStats[dictKey].chapters[chapterKey].wordCorrectCounts[word.word] = 0;
+                        }
+                        if (word.isCorrect) {
+                            dictStats[dictKey].chapters[chapterKey].wordCorrectCounts[word.word]++;
+                        }
                     });
 
                     // 累计词典统计数据
@@ -661,6 +781,16 @@ export class DataAnalysisProvider {
                             dictStats[dictId].wordCorrectCounts.push(stats.correctCount);
                         }
                     });
+                    
+                    // 计算每个章节的单词正确次数数组
+                    Object.keys(dictStats).forEach(dictId => {
+                        const dict = dictStats[dictId];
+                        Object.keys(dict.chapters).forEach(chapterNum => {
+                            const chapter = dict.chapters[chapterNum];
+                            // 将单词正确次数对象转换为数组
+                            chapter.wordCorrectCounts = Object.values(chapter.wordCorrectCounts);
+                        });
+                    });
                 }
                 
                 // 生成表格形式的单词统计
@@ -672,9 +802,21 @@ export class DataAnalysisProvider {
                     // 从所有数据中获取单词统计信息
                     const wordStats = getWordStatistics(allData);
                     
+                    // 根据当前模式筛选单词
+                    let filteredWords = words;
+                    if (currentMode !== 'all') {
+                        // 在当前模式下过滤单词
+                        filteredWords = words.filter(word => {
+                            // 这里需要根据当前模式来判断单词属于哪种模式
+                            // 由于数据结构中没有直接标识单词属于哪种模式，我们需要通过其他方式判断
+                            // 我们可以根据传入的words参数来判断，因为words已经是根据模式筛选过的
+                            return true;
+                        });
+                    }
+                    
                     // 获取所有词典列表用于筛选
-                    const dictList = [...new Set(words.map(w => w.dictId))].map(dictId => {
-                        const word = words.find(w => w.dictId === dictId);
+                    const dictList = [...new Set(filteredWords.map(w => w.dictId))].map(dictId => {
+                        const word = filteredWords.find(w => w.dictId === dictId);
                         return { id: dictId, name: word ? word.dictName : dictId };
                     });
                     
@@ -702,10 +844,11 @@ export class DataAnalysisProvider {
                                     '<tr>' +
                                         '<th onclick="sortTable(0)">单词 ▼</th>' +
                                         '<th onclick="sortTable(1)">词典 ▼</th>' +
-                                        '<th onclick="sortTable(2)">练习次数 ▼</th>' +
-                                        '<th onclick="sortTable(3)">正确次数 ▼</th>' +
-                                        '<th onclick="sortTable(4)">错误次数 ▼</th>' +
-                                        '<th onclick="sortTable(5)">正确率 ▼</th>' +
+                                        '<th onclick="sortTable(2)">章节 ▼</th>' +
+                                        '<th onclick="sortTable(3)">练习次数 ▼</th>' +
+                                        '<th onclick="sortTable(4)">正确次数 ▼</th>' +
+                                        '<th onclick="sortTable(5)">错误次数 ▼</th>' +
+                                        '<th onclick="sortTable(6)">正确率 ▼</th>' +
                                     '</tr>' +
                                 '</thead>' +
                                 '<tbody id="wordsTableBody">';
@@ -724,7 +867,7 @@ export class DataAnalysisProvider {
                         }
                         
                         // 获取词典信息
-                        const dictInfo = words.find(w => w.word === word);
+                        const dictInfo = filteredWords.find(w => w.word === word);
                         const dictName = dictInfo ? dictInfo.dictName : '未知';
                         const dictId = dictInfo ? dictInfo.dictId : 'unknown';
                         
@@ -732,6 +875,7 @@ export class DataAnalysisProvider {
                             '<tr data-dict="' + dictId + '">' +
                                 '<td>' + word + '</td>' +
                                 '<td>' + dictName + '</td>' +
+                                '<td>' + (dictInfo ? dictInfo.chapterNumber : '未知') + '</td>' +
                                 '<td>' + stats.practiceCount + '</td>' +
                                 '<td class="correct-count">' + stats.correctCount + '</td>' +
                                 '<td class="error-count">' + stats.errorCount + '</td>' +
@@ -751,14 +895,30 @@ export class DataAnalysisProvider {
                 function getWordStatistics(allData) {
                     const wordStats = {};
                     
-                    // 处理正常模式数据
-                    if (allData.modes.normal.words) {
-                        processWordsForStats(allData.modes.normal.words, wordStats);
-                    }
-                    
-                    // 处理默写模式数据
-                    if (allData.modes.dictation.words) {
-                        processWordsForStats(allData.modes.dictation.words, wordStats);
+                    // 根据当前模式处理数据
+                    switch (currentMode) {
+                        case 'normal':
+                            if (allData.modes.normal.words) {
+                                processWordsForStats(allData.modes.normal.words, wordStats);
+                            }
+                            break;
+                        case 'dictation':
+                            if (allData.modes.dictation.words) {
+                                processWordsForStats(allData.modes.dictation.words, wordStats);
+                            }
+                            break;
+                        case 'all':
+                        default:
+                            // 处理正常模式数据
+                            if (allData.modes.normal.words) {
+                                processWordsForStats(allData.modes.normal.words, wordStats);
+                            }
+                            
+                            // 处理默写模式数据
+                            if (allData.modes.dictation.words) {
+                                processWordsForStats(allData.modes.dictation.words, wordStats);
+                            }
+                            break;
                     }
                     
                     // 计算每个单词的正确率
@@ -820,7 +980,7 @@ export class DataAnalysisProvider {
                 }
                 
                 // 排序表格
-                let sortDirections = [true, true, true, true, true, true]; // true表示升序，false表示降序
+                let sortDirections = [true, true, true, true, true, true, true]; // true表示升序，false表示降序
                 
                 function sortTable(columnIndex) {
                     const table = document.getElementById('wordsTable');
@@ -847,11 +1007,11 @@ export class DataAnalysisProvider {
                         let aVal, bVal;
                         
                         // 根据列类型处理排序
-                        if (columnIndex === 0 || columnIndex === 1) {
-                            // 文本列
+                        if (columnIndex === 0 || columnIndex === 1 || columnIndex === 2) {
+                            // 文本列（单词、词典、章节）
                             aVal = aText;
                             bVal = bText;
-                        } else if (columnIndex === 5) {
+                        } else if (columnIndex === 6) {
                             // 正确率列，去掉%符号
                             aVal = parseFloat(aText.replace('%', ''));
                             bVal = parseFloat(bText.replace('%', ''));

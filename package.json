@@ -2,7 +2,7 @@
   "name": "enpractice",
   "displayName": "EnPractice",
   "description": "English Practice Extension for VS Code",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "enpractice",
   "repository": {
     "type": "git",
