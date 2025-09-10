@@ -47,6 +47,14 @@ export class DataViewerProvider {
                             this.onDidResetData();
                         }
                         break;
+                    case 'exportData':
+                        await this.exportData();
+                        break;
+                    case 'importData':
+                        await this.importData(message.data);
+                        // 导入后刷新数据
+                        await this.sendStoredData();
+                        break;
                 }
             },
             undefined,
@@ -119,6 +127,89 @@ export class DataViewerProvider {
         }
     }
 
+    // 导出数据
+    private async exportData() {
+        try {
+            // 获取所有存储的键
+            const keys = this.context.globalState.keys();
+            
+            // 构建导出数据
+            const exportData: any = {};
+            
+            // 获取所有键对应的数据
+            for (const key of keys) {
+                if (key.startsWith('enpractice.')) {
+                    try {
+                        const data = this.context.globalState.get(key);
+                        exportData[key] = data;
+                    } catch (error) {
+                        console.error(`导出数据失败: ${key}`, error);
+                    }
+                }
+            }
+            
+            // 创建导出文件
+            const exportContent = JSON.stringify(exportData, null, 2);
+            const fileName = `enpractice-export-${new Date().toISOString().split('T')[0]}.json`;
+            
+            // 保存文件
+            const uri = await vscode.window.showSaveDialog({
+                filters: { 'JSON': ['json'] },
+                defaultUri: vscode.Uri.file(fileName)
+            });
+            
+            if (uri) {
+                const buffer = Buffer.from(exportContent, 'utf8');
+                await vscode.workspace.fs.writeFile(uri, buffer);
+                vscode.window.showInformationMessage(`数据已导出到: ${uri.fsPath}`);
+            }
+        } catch (error) {
+            console.error('导出数据失败:', error);
+            vscode.window.showErrorMessage('导出数据失败: ' + error);
+        }
+    }
+
+    // 导入数据
+    private async importData(importContent: string) {
+        try {
+            // 解析导入的数据
+            const importData = JSON.parse(importContent);
+            
+            // 确认是否要导入数据
+            const confirm = await vscode.window.showWarningMessage(
+                '导入数据将覆盖现有数据，是否继续？',
+                { modal: true },
+                '是',
+                '否'
+            );
+            
+            if (confirm !== '是') {
+                return;
+            }
+            
+            // 删除所有现有的EnPractice数据
+            const keys = this.context.globalState.keys();
+            for (const key of keys) {
+                if (key.startsWith('enpractice.')) {
+                    await this.context.globalState.update(key, undefined);
+                }
+            }
+            
+            // 导入新数据
+            for (const [key, value] of Object.entries(importData)) {
+                if (key.startsWith('enpractice.')) {
+                    await this.context.globalState.update(key, value);
+                }
+            }
+            
+            // 显示成功消息
+            vscode.window.showInformationMessage('数据导入成功');
+        } catch (error) {
+            console.error('导入数据失败:', error);
+            vscode.window.showErrorMessage('导入数据失败: ' + error);
+        }
+    }
+
     private getWebviewContent(): string {
         return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -160,7 +251,7 @@ export class DataViewerProvider {
             gap: 10px;
         }
         
-        .refresh-btn, .reset-btn {
+        .refresh-btn, .reset-btn, .export-btn, .import-btn {
             padding: 8px 16px;
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -175,7 +266,17 @@ export class DataViewerProvider {
             border-color: var(--vscode-inputValidation-errorBorder);
         }
         
-        .refresh-btn:hover {
+        .export-btn {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        
+        .import-btn {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        
+        .refresh-btn:hover, .export-btn:hover, .import-btn:hover {
             background-color: var(--vscode-button-hoverBackground);
         }
         
@@ -336,6 +437,10 @@ export class DataViewerProvider {
         .cancel-btn:hover {
             background-color: var(--vscode-button-hoverBackground);
         }
+        
+        .file-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -343,10 +448,14 @@ export class DataViewerProvider {
         <div class="header">
             <h1>📊 EnPractice 数据查看器</h1>
             <div class="header-buttons">
+                <button class="import-btn" id="importBtn">📥 导入数据</button>
+                <button class="export-btn" id="exportBtn">📤 导出数据</button>
                 <button class="reset-btn" id="resetBtn">🗑️ 重置数据</button>
                 <button class="refresh-btn" id="refreshBtn">🔄 刷新数据</button>
             </div>
         </div>
+        
+        <input type="file" id="fileInput" class="file-input" accept=".json">
         
         <div class="search-box">
             <input type="text" id="searchInput" class="search-input" placeholder="搜索键名...">
@@ -386,6 +495,31 @@ export class DataViewerProvider {
         // 重置数据
         document.getElementById('resetBtn').addEventListener('click', () => {
             showConfirmationDialog();
+        });
+        
+        // 导出数据
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            vscode.postMessage({ command: 'exportData' });
+        });
+        
+        // 导入数据
+        document.getElementById('importBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        // 文件选择处理
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    vscode.postMessage({ command: 'importData', data: content });
+                };
+                reader.readAsText(file);
+            }
+            // 重置文件输入
+            event.target.value = '';
         });
         
         // 搜索功能

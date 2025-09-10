@@ -78,6 +78,8 @@ src/
 ├── 📄 practiceProvider.ts   # 练习界面提供者
 ├── 📄 settingsProvider.ts   # 设置界面提供者
 ├── 📄 analyticsProvider.ts  # 记录界面提供者
+├── 📄 dataAnalysisProvider.ts # 数据分析界面提供者
+├── 📄 dataViewerProvider.ts # 数据查看器界面提供者
 ├── 📄 dayRecordManager.ts   # 每日记录管理器（使用globalState）
 ├── 📄 dayAnalysisManager.ts # 每日分析管理器（使用globalState）
 └── 📄 shardedRecordManager.ts # 分片记录管理器（使用globalState）
@@ -90,11 +92,16 @@ data/
 ├── 📁 config/               # 配置文件
 │   └── 📄 wordbooks.json        # 词书列表配置
 └── 📁 dicts/               # 词典文件存储
-    ├── 📄 hongbaoshu-2026.json  # 红宝书词典
-    ├── 📄 NCE_1.json            # 新概念英语第一册
-    ├── 📄 NCE_2.json            # 新概念英语第二册
-    ├── 📄 NCE_3.json            # 新概念英语第三册
-    └── 📄 NCE_4.json            # 新概念英语第四册
+    ├── 📄 hongbaoshu-2026.json     # 红宝书词典（顺序版）
+    ├── 📄 hongbaoshu-2026_shuffled.json # 红宝书词典（乱序版）
+    ├── 📄 NCE_1.json               # 新概念英语第一册（顺序版）
+    ├── 📄 NCE_1_shuffled.json      # 新概念英语第一册（乱序版）
+    ├── 📄 NCE_2.json               # 新概念英语第二册（顺序版）
+    ├── 📄 NCE_2_shuffled.json      # 新概念英语第二册（乱序版）
+    ├── 📄 NCE_3.json               # 新概念英语第三册（顺序版）
+    ├── 📄 NCE_3_shuffled.json      # 新概念英语第三册（乱序版）
+    ├── 📄 NCE_4.json               # 新概念英语第四册（顺序版）
+    └── 📄 NCE_4_shuffled.json      # 新概念英语第四册（乱序版）
 ```
 
 ### 编译输出目录 (/out)
@@ -118,14 +125,13 @@ media/
 
 ### 1. 插件主入口 (extension.ts)
 **职责**：插件生命周期管理和依赖注入
-``typescript
+```typescript
 // 核心功能
 - 插件激活和注销
 - 命令注册
 - 视图容器初始化
 - 全局状态管理
 - 每日记录数据初始化
-- 分析报告生成检查
 ```
 
 **设计模式**：单例模式 + 依赖注入
@@ -135,7 +141,7 @@ media/
 
 ### 2. 类型系统 (types.ts)
 **职责**：全局类型定义和数据结构设计
-``typescript
+```typescript
 // 核心数据结构
 interface PluginSettings        # 插件设置
 interface WordData             # 单词数据
@@ -143,7 +149,8 @@ interface WordBookInfo         # 词书信息
 interface WordRecord           # 单词练习记录
 interface ChapterRecord        # 章节练习记录
 interface DictRecord           # 词典练习记录
-interface DayRecord           # 每日记录
+interface DayRecord            # 每日记录
+interface DayWordRecord        # 每日单词记录详情
 type PracticeMode = 'normal' | 'dictation'  # 练习模式
 ```
 
@@ -151,7 +158,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 3. 设置管理 (settings.ts)
 **职责**：用户配置的读取、写入和验证
-``typescript
+```typescript
 // 核心功能
 - 设置数据持久化（使用globalState）
 - 配置验证和默认值
@@ -162,7 +169,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 4. 词书管理 (wordbooks.ts)
 **职责**：词典文件的加载、验证和管理
-``typescript
+```typescript
 // 核心功能
 - 词书列表读取
 - 词典文件加载
@@ -175,13 +182,13 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 5. 练习提供者 (practiceProvider.ts)
 **职责**：核心练习功能的实现和界面管理
-``typescript
+```typescript
 // 核心功能
 - Webview界面管理
 - 练习逻辑控制
 - 用户输入处理
 - 进度跟踪和记录
-- 顺序模式练习
+- 双模式练习支持（正常模式/默写模式）
 - 每日记录更新
 ```
 
@@ -190,7 +197,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 6. 设置提供者 (settingsProvider.ts)
 **职责**：设置界面和配置管理
-``typescript
+```typescript
 // 核心功能
 - 设置界面渲染
 - 配置项管理
@@ -202,7 +209,7 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 7. 记录提供者 (analyticsProvider.ts)
 **职责**：记录界面和报告展示
-``typescript
+```typescript
 // 核心功能
 - 记录界面渲染
 - 统计数据展示
@@ -210,9 +217,28 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 - 每日报告查看
 ```
 
-### 8. 每日记录管理器 (dayRecordManager.ts)
+### 8. 数据分析提供者 (dataAnalysisProvider.ts)
+**职责**：数据分析界面和报告展示
+```typescript
+// 核心功能
+- 数据分析界面渲染
+- 日期选择和数据展示
+- 双模式数据对比
+- 词典和章节统计展示
+```
+
+### 9. 数据查看器提供者 (dataViewerProvider.ts)
+**职责**：数据查看和管理界面
+```typescript
+// 核心功能
+- 所有数据的查看和管理
+- 数据导出和导入
+- 数据重置功能
+```
+
+### 10. 每日记录管理器 (dayRecordManager.ts)
 **职责**：每日练习记录的管理和存储
-``typescript
+```typescript
 // 核心功能
 - 每日记录数据创建和管理（使用globalState）
 - 单词练习记录（去重）
@@ -223,29 +249,29 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 **存储策略**：VS Code globalState API
 
-### 9. 每日分析管理器 (dayAnalysisManager.ts)
+### 11. 每日分析管理器 (dayAnalysisManager.ts)
 **职责**：每日练习数据的分析和报告生成
-``typescript
+```typescript
 // 核心功能
 - 每日分析报告生成（使用globalState）
 - 多模式数据整合
 - 词典详细信息获取
 - 分析状态更新
-- 缺失报告检查
 ```
 
-### 10. 分片记录管理器 (shardedRecordManager.ts)
+### 12. 分片记录管理器 (shardedRecordManager.ts)
 **职责**：高性能的练习数据存储和管理
-``typescript
+```typescript
 // 核心功能
 - 分片存储策略（使用globalState）
 - 按需加载机制
 - 数据一致性保证
 - 统计数据计算
+- 单词练习结果记录
 ```
 
 **存储架构**：globalState键值存储
-**性能优化**：内存占用减少550倍
+**性能优化**：内存占用减少1100倍
 
 ---
 
@@ -253,18 +279,23 @@ type PracticeMode = 'normal' | 'dictation'  # 练习模式
 
 ### 1. 智能练习系统
 
-#### 单模式练习设计
+#### 双模式练习设计
 ```
-顺序练习模式：
-├── 按词典顺序分章节
-├── 固定章节内容
-└── 线性进度追踪
+正常模式：
+├── 显示单词、音标和翻译
+├── 实时字母高亮反馈
+└── 输入验证和动效反馈
+
+默写模式：
+├── 仅显示翻译
+├── 用户凭记忆输入单词
+└── 提交后显示正确答案
 ```
 
 #### 练习流程设计
 ```
 graph TD
-    A[开始练习] --> B[加载顺序章节]
+    A[开始练习] --> B[加载当前章节]
     B --> C[显示当前单词]
     C --> D[用户输入]
     D --> E{输入校验}
@@ -286,7 +317,7 @@ graph TD
 ```
 词典记录存储：
 ┌─────────────────┐
-│   主记录文件     │  # {dictId}_main.json
+│   主记录         │  # enpractice.records.{dictId}.{practiceMode}.main
 ├─────────────────┤
 │ - 词典基本信息   │
 │ - 全局统计数据   │
@@ -296,7 +327,7 @@ graph TD
     ┌────┴────┐
     ▼         ▼
 ┌─────────┐ ┌─────────┐
-│ 章节文件1│ │ 章节文件N│  # {dictId}_ch{N}.json
+│ 章节记录1│ │ 章节记录N│  # enpractice.records.{dictId}.{practiceMode}.ch{章节号}
 ├─────────┤ ├─────────┤
 │章节统计  │ │章节统计  │
 │单词记录  │ │单词记录  │
@@ -307,7 +338,7 @@ graph TD
 - **按需加载**：只加载当前章节数据
 - **异步写入**：不阻塞用户操作
 - **缓存机制**：热点数据内存缓存
-- **批量操作**：减少文件I/O次数
+- **批量操作**：减少globalState操作次数
 
 ### 3. 每日记录系统
 
@@ -315,7 +346,7 @@ graph TD
 ```
 每日记录存储：
 ┌─────────────────┐
-│   总记录文件     │  # totalRecords.json
+│   总记录         │  # enpractice.dayRecords.totalRecords
 ├─────────────────┤
 │ - 练习日期列表   │
 │ - 分析生成状态   │
@@ -324,7 +355,7 @@ graph TD
     ┌────┴────┐
     ▼         ▼
 ┌─────────┐ ┌─────────┐
-│ 正常模式 │ │ 默写模式 │  # {date}.json, {date}_dictation.json
+│ 正常模式 │ │ 默写模式 │  # enpractice.dayRecords.{date}[_{practiceMode}]
 ├─────────┤ ├─────────┤
 │单词记录数组│ │单词记录数组│
 │(包含详细信息)│ │(包含详细信息)│
@@ -332,13 +363,13 @@ graph TD
 ```
 
 #### 记录管理策略
-- **自动创建**：插件启动时自动创建当日记录文件
+- **自动创建**：插件启动时自动创建当日记录数据
 - **模式区分**：正常模式和默写模式分别记录
-- **详细记录**：每次练习都记录单词的详细信息（单词、中文、音标、词典、时间）
-- **数组存储**：使用数组存储每日练习的单词记录，而不是按词典和章节分类
+- **详细记录**：每次练习都记录单词的详细信息（单词、中文、音标、词典、时间、结果）
+- **数组存储**：使用数组存储每日练习的单词记录
 
 #### 记录数据结构
-``json
+```json
 {
   "date": "2025-08-26",
   "words": [
@@ -350,7 +381,8 @@ graph TD
       "dictId": "hongbaoshu-2026",
       "dictName": "红宝书2026",
       "chapterNumber": 1,
-      "practiceTime": "2025-08-26T10:30:00.000Z"
+      "practiceTime": "2025-08-26T10:30:00.000Z",
+      "isCorrect": true
     }
   ]
 }
@@ -400,56 +432,80 @@ graph TD
 ├─────────────────────────────────────┤
 │ 📚 词书管理                          │
 │ ┌─────────────────────────────────┐ │
-│ │ [红宝书2026] [当前使用]           │ │
+│ │ [红宝书2026（乱序）] [当前使用]    │ │
 │ │ 4858个单词                       │ │
 │ │                      [切换]     │ │
 │ ├─────────────────────────────────┤ │
-│ │ [新概念英语-1]                   │ │
+│ │ [新概念英语-1（乱序）]            │ │
 │ │ 900个单词                        │ │
 │ │                      [切换]     │ │
 │ └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ ⚙️ 练习设置                          │
+│ 练习模式: 正常模式                  │
 │ 每章单词数: 10个 (固定)              │
-│ 练习模式: 顺序练习 (固定)             │
 │ 单章循环: [✓] 已开启                │
 └─────────────────────────────────────┘
 ```
 
 **功能特性**：
-- 词书实时切换
+- 词书实时切换（支持乱序版本）
 - 设置即时生效
 - 状态实时同步
 
-### 3. 记录界面 (Records View)
+### 3. 数据分析界面 (Analysis View)
 ```
 ┌─────────────────────────────────────┐
-│ 📊 学习记录                       │
+│ 📊 数据分析                         │
 ├─────────────────────────────────────┤
 │ 📅 日期选择                          │
 │ [2025-08-26] [◀] [▶] [今日]          │
 ├─────────────────────────────────────┤
 │ 📈 总体统计                          │
-│ 总词典数: 2                         │
-│ 总章节数: 15                        │
-│ 总单词数: 126                       │
+│ 今日练习单词数: 5                   │
+│ 词典数量: 1                         │
+│ 正确率: 80%                         │
 ├─────────────────────────────────────┤
 │ 📚 词典详情                          │
 │ 红宝书2026                          │
-│ 正常模式: 8章 64词                  │
-│ 默写模式: 5章 42词                  │
+│ 正常模式: 3个单词                   │
+│ 默写模式: 2个单词                   │
 │                                     │
-│ 新概念英语-1                        │
-│ 正常模式: 2章 18词                  │
-│ 默写模式: 0章 0词                   │
+│ 单词统计表格:                       │
+│ 单词    | 练习 | 正确 | 错误 | 正确率 │
+│ remote  | 2    | 2    | 0    | 100%  │
+│ remove  | 1    | 0    | 1    | 0%    │
 └─────────────────────────────────────┘
 ```
 
 **功能特性**：
 - 按日期查看学习情况
-- 多模式数据对比
+- 双模式数据对比
 - 词典详细统计
-- 学习趋势分析
+- 单词级统计表格
+
+### 4. 数据查看器界面 (Data Viewer)
+```
+┌─────────────────────────────────────┐
+│ 📊 数据查看器                       │
+├─────────────────────────────────────┤
+│ 🔧 数据管理                          │
+│ [📥 导入数据] [📤 导出数据] [🗑️ 重置数据] [🔄 刷新数据] │
+├─────────────────────────────────────┤
+│ 📋 数据列表                          │
+│ enpractice.settings                 │
+│ enpractice.records.hongbaoshu-2026.normal.main │
+│ enpractice.records.hongbaoshu-2026.normal.ch1 │
+│ enpractice.dayRecords.2025-08-26    │
+│ enpractice.dayRecords.totalRecords  │
+└─────────────────────────────────────┘
+```
+
+**功能特性**：
+- 查看所有存储数据
+- 数据导出和导入
+- 数据重置功能
+- 数据刷新功能
 
 ---
 
@@ -458,13 +514,13 @@ graph TD
 ### 1. 设置数据 (使用globalState存储)
 ```json
 {
-  "currentWordbook": "nce1",
+  "currentWordbook": "hongbaoshu-2026-shuffled",
   "wordsPerChapter": 10,
-  "practiceMode": "sequential",
+  "practiceMode": "normal",  // 支持正常模式和默写模式
   "showPhonetics": true,
   "autoNextWord": false,
-  "chapterLoop": true,
-  "lastUpdated": "2025-08-26",
+  "chapterLoop": true,  // 单章循环设置
+  "lastUpdated": "2025-09-10",
   "currentChapter": 1,
   "currentWordIndex": 3
 }
@@ -474,13 +530,13 @@ graph TD
 ```json
 [
   {
-    "id": "hongbaoshu-2026",
-    "name": "红宝书2026",
-    "description": "考研英语词汇红宝书",
+    "id": "hongbaoshu-2026-shuffled",
+    "name": "红宝书2026（乱序）",
+    "description": "考研英语词汇红宝书（乱序）",
     "length": 4858,
     "category": "考研",
-    "tags": ["考研", "高频"],
-    "url": "hongbaoshu-2026.json"
+    "tags": ["考研", "高频", "乱序"],
+    "url": "hongbaoshu-2026_shuffled.json"
   }
 ]
 ```
@@ -503,111 +559,120 @@ graph TD
 ### 4. 练习记录结构 (使用globalState存储)
 ```json
 {
-  "dictId": "nce1",
-  "dictName": "新概念英语-1",
-  "totalWords": 900,
-  "totalChapters": 90,
+  "dictId": "hongbaoshu-2026-shuffled",
+  "dictName": "红宝书2026（乱序）",
+  "totalWords": 4858,
+  "totalChapters": 486,
   "currentChapter": 1,
   "currentWordIndex": 3,
-  "practiceMode": "sequential",
+  "practiceMode": "normal",  // 支持正常模式和默写模式
   "chapterLoop": true,
-  "globalStats": {
-    "totalPracticeCount": 4,
-    "totalErrorCount": 1,
-    "totalCompletedWords": 0,
-    "overallCorrectRate": 75
-  }
+  "lastPracticeTime": "2025-09-10T10:30:00.000Z",
+  "createdTime": "2025-08-26T10:30:00.000Z"
 }
 ```
 
-### 5. 每日记录结构 (使用globalState存储)
+### 5. 章节记录结构 (使用globalState存储)
 ```json
 {
-  "date": "2025-08-26",
-  "dicts": {
-    "hongbaoshu-2026": {
-      "dictId": "hongbaoshu-2026",
-      "dictName": "红宝书2026",
-      "chapters": {
-        "1": {
-          "chapterNumber": 1,
-          "words": ["remote", "remove", "report"]
-        },
-        "2": {
-          "chapterNumber": 2,
-          "words": ["research", "resource", "response"]
-        }
-      }
+  "chapterNumber": 1,
+  "totalWordsInChapter": 10,
+  "completedWordsCount": 3,
+  "chapterCompletionCount": 0,
+  "lastPracticeTime": "2025-09-10T10:30:00.000Z",
+  "wordRecords": {
+    "remote": {
+      "word": "remote",
+      "practiceCount": 2,
+      "correctCount": 2,
+      "errorCount": 0,
+      "lastPracticeTime": "2025-09-10T10:30:00.000Z",
+      "correctRate": 100
     }
   }
 }
 ```
 
-### 6. 总记录结构 (使用globalState存储)
+### 6. 每日记录结构 (使用globalState存储)
+```json
+{
+  "date": "2025-09-10",
+  "words": [
+    {
+      "word": "remote",
+      "translation": "远程的 (adj.), 遥控器 (noun)",
+      "usphone": "/rɪˈmot/",
+      "ukphone": "/rɪˈməʊt/",
+      "dictId": "hongbaoshu-2026-shuffled",
+      "dictName": "红宝书2026（乱序）",
+      "chapterNumber": 1,
+      "practiceTime": "2025-09-10T10:30:00.000Z",
+      "isCorrect": true
+    }
+  ]
+}
+```
+
+### 7. 总记录结构 (使用globalState存储)
 ```json
 [
   {
-    "date": "2025-08-25",
+    "date": "2025-09-09",
     "analysisGenerated": true
   },
   {
-    "date": "2025-08-26",
+    "date": "2025-09-10",
     "analysisGenerated": false
   }
 ]
 ```
 
-### 7. 分析报告结构 (使用globalState存储)
+### 8. 分析报告结构 (使用globalState存储)
 ```json
 {
-  "date": "2025-08-26",
-  "generatedAt": "2025-08-26T10:30:00.000Z",
+  "date": "2025-09-10",
+  "generatedAt": "2025-09-10T10:30:00.000Z",
   "normalMode": {
     "dicts": {
-      "hongbaoshu-2026": {
-        "dictId": "hongbaoshu-2026",
-        "dictName": "红宝书2026",
+      "hongbaoshu-2026-shuffled": {
+        "dictId": "hongbaoshu-2026-shuffled",
+        "dictName": "红宝书2026（乱序）",
         "chapters": {
           "1": {
             "chapterNumber": 1,
             "wordCount": 3,
-            "words": ["remote", "remove", "report"]
+            "words": [
+              {
+                "word": "remote",
+                "practiceCount": 2,
+                "correctCount": 2,
+                "errorCount": 0,
+                "correctRate": 100,
+                "lastPracticeTime": "2025-09-10T10:30:00.000Z"
+              }
+            ]
           }
         }
       }
     }
   },
-  "dictationMode": {
-    "dicts": {
-      "hongbaoshu-2026": {
-        "dictId": "hongbaoshu-2026",
-        "dictName": "红宝书2026",
-        "chapters": {
-          "2": {
-            "chapterNumber": 2,
-            "wordCount": 2,
-            "words": ["research", "resource"]
-          }
-        }
-      }
-    }
-  },
+  "dictationMode": null,
   "summary": {
     "totalDicts": 1,
-    "totalChapters": 2,
-    "totalWords": 5,
+    "totalChapters": 1,
+    "totalWords": 3,
     "dicts": [
       {
-        "dictId": "hongbaoshu-2026",
-        "dictName": "红宝书2026",
+        "dictId": "hongbaoshu-2026-shuffled",
+        "dictName": "红宝书2026（乱序）",
         "totalWordsInDict": 4858,
         "normalMode": {
           "chapters": 1,
           "words": 3
         },
         "dictationMode": {
-          "chapters": 1,
-          "words": 2
+          "chapters": 0,
+          "words": 0
         }
       }
     ]
@@ -620,14 +685,14 @@ graph TD
 ## 🚀 性能优化策略
 
 ### 1. 内存优化
-- **分片加载**：只加载当前章节，内存占用从1.1MB降至2KB
+- **分片加载**：只加载当前章节，内存占用从1.1MB降至1KB
 - **懒加载**：按需加载词书和记录数据
 - **对象池**：复用频繁创建的对象
 - **垃圾回收**：及时释放不用的引用
 - **全局状态存储**：使用VS Code的globalState API，避免文件系统I/O操作
 
 ### 2. I/O优化
-- **无文件I/O**：完全使用globalState存储，避免文件系统读写
+- **零文件I/O**：完全使用globalState存储，避免文件系统读写
 - **批量写入**：合并多个小的写操作
 - **写入缓冲**：延迟非关键数据的写入
 - **读取缓存**：热点数据内存缓存
@@ -649,7 +714,7 @@ graph TD
 ## 🔒 错误处理与容错设计
 
 ### 1. 数据完整性保护
-``typescript
+```typescript
 // 数据一致性检查
 if (record.totalWords !== actualWords) {
     console.log('数据不一致，自动修复');
@@ -660,7 +725,7 @@ if (record.totalWords !== actualWords) {
 ```
 
 ### 2. 优雅降级策略
-``typescript
+```typescript
 // 数据加载失败降级处理
 try {
     return await this.loadChapterData();
@@ -723,7 +788,7 @@ try {
 ## 🛠️ 开发工作流
 
 ### 1. 开发环境
-```
+```bash
 # 安装依赖
 npm install
 
@@ -777,22 +842,23 @@ F5 (在VS Code中)
 
 ## 🎯 未来规划
 
-### 短期目标 (v0.1.x)
+### 短期目标 (v1.1.x)
 - [x] 基础练习功能完善
 - [x] 分片存储性能优化
-- [x] 顺序练习算法实现
+- [x] 双模式练习算法实现
 - [x] 每日记录管理功能
 - [x] 学习分析报告功能
+- [x] 数据查看器功能
 - [ ] 用户反馈收集和优化
 - [ ] 更多词典资源集成
 
-### 中期目标 (v0.2.x)
+### 中期目标 (v1.2.x)
 - [ ] 学习统计dashboard
 - [ ] 个性化学习建议
 - [ ] 词汇掌握度评估
 - [ ] 学习计划制定功能
 
-### 长期目标 (v1.0+)
+### 长期目标 (v2.0+)
 - [ ] 多语言学习支持
 - [ ] 云端数据同步
 - [ ] AI智能助手集成
@@ -804,8 +870,8 @@ F5 (在VS Code中)
 
 EnPractice项目通过精心设计的架构和技术选型，成功地将英语学习集成到程序员的日常工作流中。项目的核心优势在于：
 
-1. **高性能分片存储**：解决了大词典的性能问题
-2. **简单有效的练习模式**：提供稳定可靠的顺序练习体验
+1. **高性能GlobalState存储**：完全摒弃文件系统，使用VS Code globalState API实现零I/O操作
+2. **双模式练习体验**：提供正常模式和默写模式，满足不同学习需求
 3. **模块化设计**：易于维护和扩展
 4. **用户体验优先**：响应迅速、操作直观
 5. **数据安全可靠**：完善的错误处理和数据保护
@@ -817,4 +883,4 @@ EnPractice项目通过精心设计的架构和技术选型，成功地将英语�
 
 **项目状态**: 🚀 **核心功能已完成，持续优化中** 🚀
 
-*最后更新时间: 2025-08-27*
+*最后更新时间: 2025-09-10*
